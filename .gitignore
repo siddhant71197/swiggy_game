@@ -1,0 +1,24 @@
+# ── Secrets — never commit ────────────────────────────────────────────────
+# Nothing in this project needs an env var today. The rules are here anyway,
+# because the day one is added is the day someone commits it.
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*service-account*.json
+
+# ── Dependencies & build output ───────────────────────────────────────────
+node_modules/
+dist/
+dist-*/
+
+# ── Tooling caches ────────────────────────────────────────────────────────
+.vite/
+.vercel/
+
+# ── OS / editor ───────────────────────────────────────────────────────────
+.DS_Store
+*.local
+.idea/
+.vscode/

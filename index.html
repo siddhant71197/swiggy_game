@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <!-- The app opens onto the boot overlay in the brand's primary and stays
+         mastheaded in it, so the browser chrome matches. A white theme-color
+         here is a white strip above a coloured page on Android — the single
+         most visible "web page in a wrapper" tell there is. -->
+    <meta name="theme-color" content="%brand:colors.primary%" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- black-translucent, not default: a light status bar puts black glyphs on
+         the primary colour, which fails contrast and reads as a bug on iOS. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="%brand:copy.a11y%" />
+    <link rel="icon" href="%brand:logo.favicon.src%" />
+    <link rel="apple-touch-icon" href="%brand:logo.favicon.src%" />
+    <!-- The lockup paints on the boot overlay and again on the splash hero, so
+         it is the one asset worth blocking on. Nothing else is preloaded. -->
+    <link rel="preload" as="image" href="%brand:logo.mark.src%" />
+    <title>%brand:identity.fullTitle%</title>
+    <style>
+      /* Critical CSS is inline so the first paint never waits on a stylesheet
+         request. Every brand value below is a placeholder substituted at build
+         time from the selected brand module by tools/vite/brand.mjs — which
+         FAILS THE BUILD on any placeholder it cannot resolve. Nothing here is a
+         copy of a value that lives elsewhere, so nothing here can go stale. */
+
+      /* ── Type ────────────────────────────────────────────────────────────
+         Self-hosted, and subset to latin. The brand's real face is commercial
+         and cannot ship; this is the nominated substitute. `font-display:swap`
+         because a boot screen that waits on a font is a boot screen that looks
+         broken on a slow connection — and the fallback in the stack is close
+         enough in metrics that the swap is not a visible reflow.
+
+         EXACTLY the three weights the brand module declares. Asking for a
+         weight that is not here makes the browser synthesise a smeared
+         faux-bold that reads as a rendering bug rather than a missing file. */
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('./fonts/poppins-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('./fonts/poppins-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 800;
+        font-display: swap;
+        src: url('./fonts/poppins-800.woff2') format('woff2');
+      }
+
+      :root {
+        color-scheme: light;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: %brand:colors.surfaceDark%;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: %brand:type.stack%;
+      }
+
+      /* ── The phone ───────────────────────────────────────────────────────
+         On a desktop this is a phone-shaped frame; on a phone it IS the
+         screen. Everything the game measures comes from this element's box,
+         never from window.innerWidth — that single indirection is what lets
+         the same rendering code serve both with no branch anywhere else.
+
+         `svh` rather than `vh`: with `vh`, Android collapsing its URL bar
+         resizes the field mid-jump, which changes the apex the player is
+         currently in the middle of. */
+      #phone {
+        position: relative;
+        aspect-ratio: 9 / 19.5;
+        height: min(96svh, 900px);
+        max-width: 100vw;
+        border-radius: 42px;
+        overflow: hidden;
+        background: %brand:colors.tints[4]%;
+        box-shadow: %brand:type.shadow%;
+      }
+      /* On a real handset the frame is the screen: no bezel, no radius, no
+         shadow, and no letterboxing. */
+      @media (max-aspect-ratio: 3 / 4) {
+        #phone {
+          height: 100svh;
+          width: 100vw;
+          max-width: none;
+          aspect-ratio: auto;
+          border-radius: 0;
+          box-shadow: none;
+        }
+      }
+
+      #game {
+        display: block;
+        width: 100%;
+        height: 100%;
+        /* touch-action:none is load-bearing — without it Chrome arbitrates
+           every drag against scrolling first, which reads to the player as a
+           d-pad that ignores their thumb. */
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* ── Boot splash ─────────────────────────────────────────────────────
+         The brand's primary, carrying the lockup — the same ground the
+         masthead and the first canvas frame use. A boot screen whose only job
+         is to bridge to the first frame MUST be that frame's colour; any other
+         choice buys a visible flash at the exact moment the player is deciding
+         whether this thing is well made. */
+      #boot {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+        background: %brand:colors.primary%;
+        transition: opacity 0.35s ease;
+      }
+      #boot.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* The lockup is orange-on-transparent artwork, so on the orange boot
+         ground it needs a paper card under it rather than a knockout — tinting
+         the supplied file to white here would be recolouring the mark, which
+         the brand forbids and which `logo.knockout` exists to gate. */
+      #boot .plate {
+        background: %brand:colors.paper%;
+        border-radius: 18px;
+        padding: 18px 24px;
+        display: flex;
+      }
+      #boot img {
+        width: min(52vw, 260px);
+        height: auto;
+        display: block;
+      }
+      #boot p {
+        color: %brand:colors.paper%;
+        opacity: 0.78;
+        font-size: 12px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        font-weight: 500;
+      }
+      #boot .rule {
+        width: min(52vw, 260px);
+        height: 4px;
+        border-radius: 999px;
+        background: %brand:colors.primaryPressed%;
+        overflow: hidden;
+      }
+      #boot .rule span {
+        display: block;
+        width: 38%;
+        height: 100%;
+        border-radius: 999px;
+        background: %brand:colors.secondary%;
+        animation: sweep 1.1s ease-in-out infinite;
+      }
+      @keyframes sweep {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(260%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot {
+          transition: none;
+        }
+        #boot .rule span {
+          animation: none;
+          width: 100%;
+        }
+      }
+
+      /* ── Ad slot ─────────────────────────────────────────────────────────
+         A DOM overlay, deliberately NOT canvas-drawn: real ad tags (GPT /
+         AdSense / IMA) render their own iframes and cannot paint into a 2D
+         context, so canvas art would be thrown away the day a live tag is
+         wired in. src/ui/adSlot.ts fills it, and mountAdCreative() is the
+         integration point.
+
+         Anchored above the safe-area inset so it clears the home indicator —
+         which on this game also keeps it clear of the jump button, the one
+         control the player's right thumb lives on. */
+      #ad-slot {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        background: transparent;
+        transform: translateY(0);
+        opacity: 1;
+        transition:
+          transform 0.22s ease,
+          opacity 0.22s ease;
+      }
+      /* Hidden for the whole live round: it slides out AND stops taking input,
+         so a swipe that runs off the bottom of the stage can never hit it. */
+      #ad-slot[data-hidden='true'] {
+        transform: translateY(115%);
+        opacity: 0;
+        pointer-events: none;
+      }
+      /* THE ONLY BOX-SHADOW IN THE BUILD, and it comes from the brand's own
+         `type.shadow`. The canvas uses stacked fills and inset borders
+         instead — shadowBlur is the Android frame-budget cliff and the gate
+         bans it. Here, in the DOM, it is free. */
+      #ad-frame {
+        box-shadow: %brand:type.shadowSoft%;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="phone">
+      <p class="sr-only">%brand:copy.a11y%</p>
+      <canvas id="game" role="img" aria-label="%brand:identity.fullTitle%"></canvas>
+      <div id="boot">
+        <div class="plate">
+          <img src="%brand:logo.mark.src%" alt="%brand:identity.name%" />
+        </div>
+        <div class="rule"><span></span></div>
+        <p>%brand:copy.bootLine%</p>
+      </div>
+      <!-- Filled by src/ui/adSlot.ts from the AD block in src/config/theme.ts.
+           Replace the house creative with a live tag by mounting into
+           #ad-creative — the label sits outside it deliberately. -->
+      <div id="ad-slot" data-hidden="true" aria-label="Advertisement"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

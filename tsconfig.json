@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": [],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+
+    "noEmit": true,
+
+    // `@brand` is rewritten by tools/vite/brand.mjs at build time to whichever
+    // brand is selected. This mapping exists ONLY so the editor and `tsc
+    // --noEmit` can resolve it; it is not what the build uses, and pointing it
+    // at the default brand is correct — every brand satisfies the same
+    // contract, so typechecking against one typechecks against all of them.
+    "baseUrl": ".",
+    "paths": {
+      "@brand": ["./brands/swiggy/brand.ts"]
+    }
+  },
+  "include": ["src", "brands", "vite.config.ts"]
+}

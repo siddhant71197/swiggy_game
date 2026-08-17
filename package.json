@@ -1,0 +1,27 @@
+{
+  "name": "swiggy-delivery-climb",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Donkey Kong-style climbing platformer, brand-modular, shipped with the Swiggy skin.",
+  "brand": {
+    "default": "swiggy"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "npm run check && npm run check:brand && npm run validate && vite build",
+    "preview": "vite preview --host",
+    "check": "tsc --noEmit",
+    "check:brand": "node tools/gate.mjs",
+    "validate": "node --experimental-strip-types tools/validate-levels.ts",
+    "simulate": "node --experimental-strip-types tools/simulate.ts",
+    "brands": "node tools/gate.mjs --list"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
