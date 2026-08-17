@@ -97,6 +97,8 @@ async function boot(): Promise<void> {
   function freshRun(): {
     levels: number;
     rakhis: number;
+    /** Food items delivered across the run — the other half of the order. */
+    food: number;
     /** The CURRENT no-death run of levels. Reset by any level with a death. */
     streak: number;
     /** The best `streak` reached this run — what the receipt actually reports. */
@@ -104,7 +106,7 @@ async function boot(): Promise<void> {
     perfect: number;
     score: number;
   } {
-    return { levels: 0, rakhis: 0, streak: 0, bestStreak: 0, perfect: 0, score: 0 };
+    return { levels: 0, rakhis: 0, food: 0, streak: 0, bestStreak: 0, perfect: 0, score: 0 };
   }
 
   /**
@@ -162,6 +164,7 @@ async function boot(): Promise<void> {
       // the level that just finished rather than every level but the last.
       run.levels += 1;
       run.rakhis += summary.rakhis;
+      run.food += summary.food;
       run.score = summary.score;
       if (summary.perfect) {
         run.perfect += 1;
@@ -186,6 +189,7 @@ async function boot(): Promise<void> {
         totals: {
           levels: run.levels,
           rakhis: run.rakhis,
+          food: run.food,
           streak: run.bestStreak,
           perfect: run.perfect,
           score: run.score,

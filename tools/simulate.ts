@@ -132,6 +132,23 @@ function objectiveFor(w: World): Objective | null {
     return { x: p.x, act: 'none', ladderId: -1 };
   }
 
+  // 1a. AN UNCOLLECTED DISH ON THIS FLOOR, AND UNCONDITIONALLY.
+  //
+  //     No proximity guard, unlike the shaker below. The order is a GATE
+  //     condition: a bot that walked past a dish because it was 160 units the
+  //     wrong way would climb to the top, find the gated ladder shut, have no
+  //     objective left that leads anywhere, and burn the clock until MAX_SECONDS.
+  //     That reports as a level the bot could not clear, which is a false failure
+  //     and — worse — a false failure that looks exactly like a hard level. Every
+  //     required pickup the bot can see, it goes and gets.
+  const foods = w.params.def.foods;
+  for (let i = 0; i < foods.length; i++) {
+    if (w.session.foodTaken[i]) continue;
+    const p = foods[i]!;
+    if (Math.abs(lineY(g, p.x) - p.y) > 40) continue;
+    return { x: p.x, act: 'none', ladderId: -1 };
+  }
+
   // 1b. An unpushed order pin on this floor. The door refuses the delivery until
   //     every pin is down, so a bot that ignored them would measure a level it
   //     is not allowed to finish.
@@ -144,7 +161,11 @@ function objectiveFor(w: World): Objective | null {
   // 1c. A shaker on this floor, but only while it is genuinely on the way. The
   //     bot is a mediocre player, not a min-maxer: it picks up what it walks
   //     past, it does not plan powerup windows.
-  for (const s of w.hazards.shakers) {
+  //     The helmet and the turbo get the SAME guard and the same reasoning. All
+  //     three are optional, so a detour for one is a choice a mediocre player does
+  //     not make — and measuring the levels against a bot that hoovered up every
+  //     powerup on the map would report a difficulty curve no human plays.
+  for (const s of [...w.hazards.shakers, ...w.hazards.helmets, ...w.hazards.turbos]) {
     if (s.taken) continue;
     if (Math.abs(lineY(g, s.x) - s.y) > 40) continue;
     if (Math.abs(s.x - b.x) > 150) continue;
@@ -315,6 +336,8 @@ interface Result {
   deaths: number;
   rakhis: number;
   rakhiTotal: number;
+  foods: number;
+  foodTotal: number;
   score: number;
   timeLeft: number;
   peakBarrels: number;
@@ -406,6 +429,8 @@ function playOnce(level: number, seed?: number): Result {
     deaths: w.session.deaths,
     rakhis: w.session.rakhiCount,
     rakhiTotal: w.session.rakhiTotal,
+    foods: w.session.foodCount,
+    foodTotal: w.session.foodTotal,
     score: w.session.score,
     timeLeft: Math.max(w.session.timeLeft, 0),
     peakBarrels,
@@ -419,7 +444,7 @@ function playOnce(level: number, seed?: number): Result {
 function trace(level: number): void {
   const w = createWorld(level);
   let heldJump = false;
-  console.log('  t     x       y       state   seg  barrels  rakhis');
+  console.log('  t     x       y       state   seg  barrels  rakhis  order');
   for (let i = 0; i < 60 * 12; i++) {
     if (w.done) break;
     const want = botIntent(w);
@@ -434,7 +459,9 @@ function trace(level: number): void {
           .toFixed(1)
           .padStart(6)}  ${w.agent.state.padEnd(7)} ${String(b.segId).padStart(3)}  ${String(
           w.barrels.pool.activeCount,
-        ).padStart(7)}  ${w.session.rakhiCount}/${w.session.rakhiTotal}`,
+        ).padStart(7)}  ${w.session.rakhiCount}/${w.session.rakhiTotal}     ${
+          w.session.foodCount
+        }/${w.session.foodTotal}`,
       );
     }
   }
@@ -451,6 +478,16 @@ interface LevelReport {
   deathsPerRun: number;
   peakBarrels: number;
   rakhiFrac: number;
+  /**
+   * Fraction of the ORDER collected, reported separately from the rakhis.
+   *
+   * Two columns rather than one combined sweep number, because they fail for
+   * different reasons: a short rakhi count means the bot could not survive a
+   * floor, a short food count on a level it CLEARED would be impossible (the gate
+   * counts both), so anything under 100% here on a cleared run is a bug in this
+   * file rather than a fact about the level. It is a cheap invariant to watch.
+   */
+  foodFrac: number;
   causes: Record<string, number>;
 }
 
@@ -461,6 +498,8 @@ function playLevel(level: number, runs: number, verbose: boolean): LevelReport {
   let peak = 0;
   let rakhis = 0;
   let rakhiTotal = 0;
+  let foods = 0;
+  let foodTotal = 0;
   const causes: Record<string, number> = {};
 
   for (let i = 0; i < runs; i++) {
@@ -475,6 +514,8 @@ function playLevel(level: number, runs: number, verbose: boolean): LevelReport {
     if (r.peakBarrels > peak) peak = r.peakBarrels;
     rakhis += r.rakhis;
     rakhiTotal += r.rakhiTotal;
+    foods += r.foods;
+    foodTotal += r.foodTotal;
     for (const [k, v] of Object.entries(r.causes)) causes[k] = (causes[k] ?? 0) + v;
 
     if (verbose) {
@@ -483,6 +524,7 @@ function playLevel(level: number, runs: number, verbose: boolean): LevelReport {
           `  ${r.seconds.toFixed(1).padStart(6)}s` +
           `  deaths ${r.deaths}` +
           `  rakhis ${r.rakhis}/${r.rakhiTotal}` +
+          `  order ${r.foods}/${r.foodTotal}` +
           `  peak barrels ${r.peakBarrels}` +
           `  jumped ${r.jumps}` +
           `  hits ${r.hits}` +
@@ -500,6 +542,7 @@ function playLevel(level: number, runs: number, verbose: boolean): LevelReport {
     deathsPerRun: totalDeaths / runs,
     peakBarrels: peak,
     rakhiFrac: rakhiTotal > 0 ? rakhis / rakhiTotal : 0,
+    foodFrac: foodTotal > 0 ? foods / foodTotal : 0,
     causes,
   };
 }
@@ -542,8 +585,8 @@ if (single) {
   // never plans, so it walks the route faster than a human and dies more.
   console.log(`── ALL ${LEVELS.length} LEVELS — ${runs} runs each ────────────────────────`);
   console.log('');
-  console.log('   lvl  clear    time     target   vs target   deaths/run  peak  sweep');
-  console.log('   ───  ─────    ──────   ──────   ─────────   ──────────  ────  ─────');
+  console.log('   lvl  clear    time     target   vs target   deaths/run  peak  rakhi  order');
+  console.log('   ───  ─────    ──────   ──────   ─────────   ──────────  ────  ─────  ─────');
 
   const reports: LevelReport[] = [];
   for (let l = 1; l <= LEVELS.length; l++) reports.push(playLevel(l, runs, false));
@@ -558,7 +601,8 @@ if (single) {
       `   ${String(r.level).padStart(3)}  ${String(r.clears).padStart(2)}/${r.runs}   ` +
         `${time}   ${String(target).padStart(4)}s    ${vs}   ` +
         `${r.deathsPerRun.toFixed(2).padStart(10)}  ${String(r.peakBarrels).padStart(4)}  ` +
-        `${(r.rakhiFrac * 100).toFixed(0).padStart(4)}%`,
+        `${(r.rakhiFrac * 100).toFixed(0).padStart(4)}%  ` +
+        `${(r.foodFrac * 100).toFixed(0).padStart(4)}%`,
     );
   }
 

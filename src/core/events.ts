@@ -58,7 +58,23 @@ export type SimEvent =
   /** The powerup ran out on its own rather than being spent. */
   | { type: 'ShakerExpired' }
   /** `index` into the level's pin table. */
-  | { type: 'PinPushed'; index: number; x: number; y: number };
+  | { type: 'PinPushed'; index: number; x: number; y: number }
+  /**
+   * `index` into the level's food table; `kind` indexes the brand's dish table so
+   * the presentation layer can pop the right dish WITHOUT reading level data —
+   * the sim already knows which dish it is, and making the renderer re-look it up
+   * would be a second place the two tables have to agree.
+   *
+   * `chain` is the SHARED combo count, the same counter `RakhiTaken` carries: one
+   * order, one chain, so a clean sweep of the whole order is what pays.
+   */
+  | { type: 'FoodTaken'; index: number; x: number; y: number; kind: number; chain: number }
+  | { type: 'HelmetTaken'; x: number; y: number }
+  /** The helmet absorbed a hit and is gone. The one beat that says "that was free". */
+  | { type: 'HelmetBroke'; x: number; y: number }
+  | { type: 'TurboTaken'; x: number; y: number }
+  /** The boost ran out on its own. Mirrors `ShakerExpired`; no "spent" case exists. */
+  | { type: 'TurboExpired' };
 
 export type SimEventType = SimEvent['type'];
 

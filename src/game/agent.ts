@@ -89,6 +89,18 @@ export interface Agent {
   freeze: number;
   invuln: number;
 
+  /**
+   * Multiplier on PHYS.runSpeed. 1 is unboosted.
+   *
+   * A FIELD RATHER THAN A PARAMETER, deliberately. `stepAgent` already takes six
+   * arguments and the seventh would be the one every future powerup adds another
+   * of; more to the point, the boost is a property of the agent's current state —
+   * exactly like `invuln` — and the world writes it once a step from
+   * `turboActive`. Keeping it off the signature also means nothing that calls
+   * `stepAgent` has to know the turbo exists.
+   */
+  speedMult: number;
+
   /** Barrels cleared since leaving the ground. Reset on touchdown. */
   airCleared: number;
   /** True for the whole airborne arc; scoring reads it, not `state`. */
@@ -108,6 +120,7 @@ export function makeAgent(x: number, y: number): Agent {
     ladderId: -1,
     freeze: 0,
     invuln: 0,
+    speedMult: 1,
     airCleared: 0,
     airborne: false,
   };
@@ -235,7 +248,7 @@ function stepRun(
   // ramp would make the distance covered by a jump depend on how long the player
   // had been holding left, which is exactly the arc unpredictability the header
   // rejects for variable jump height.
-  b.vx = intent.dir * PHYS.runSpeed;
+  b.vx = intent.dir * PHYS.runSpeed * a.speedMult;
 
   // BELT FIRST, then the body's own movement. See applyBelt in physics.ts.
   applyBelt(stage, b, beltSpeed, dt);
@@ -276,7 +289,11 @@ function stepAir(stage: Stage, a: Agent, intent: Intent, dt: number): void {
   const b = a.body;
   if (intent.dir !== 0) a.face = intent.dir;
 
-  airSteer(b, intent.dir * PHYS.runSpeed, dt);
+  // BOTH speed reads carry the multiplier, ground and air. Boosting only the
+  // ground would change the jump's horizontal reach mid-arc — the player would
+  // launch fast and drift slow — and the one thing this game's jump may never do
+  // is have two different parabolas. See the header on variable jump height.
+  airSteer(b, intent.dir * PHYS.runSpeed * a.speedMult, dt);
 
   if (a.coyote > 0) a.coyote -= dt;
 
@@ -286,6 +303,17 @@ function stepAir(stage: Stage, a: Agent, intent: Intent, dt: number): void {
     // walled at both ends — but any level whose bottom floor is open needs the
     // fall to end somewhere, and a body accelerating forever is worse than a
     // death.
+    //
+    // THE HELMET DOES NOT SAVE YOU FROM THIS, AND MUST NOT.
+    //
+    // This is the one death in the game with no floor waiting underneath it. The
+    // helmet's promise is "the next hit is free" — it absorbs a barrel, a flame, a
+    // scooter, all of which leave the player standing somewhere. Absorb the void
+    // instead and the player survives at y = 900 with no girder beneath them,
+    // still falling, still out of bounds, and the only thing the helmet bought
+    // them is a level they cannot lose and cannot finish. That is why this call
+    // goes straight to `hitAgent` and never through world.ts's `agentStruck`,
+    // which is the ONE place the helmet is allowed to intercept.
     if (b.y > stage.h + PHYS.maxSnap) hitAgent(a);
     return;
   }

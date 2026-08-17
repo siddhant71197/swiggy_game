@@ -78,8 +78,9 @@ export interface GirderDef {
  * A ladder rail. `yTop` is the smaller y — this is screen space, up is less.
  *
  * `gap` is a BROKEN ladder: a stretch of missing rungs that the climb clamps
- * against from whichever side it approaches. `gated` is the rakhi gate; exactly
- * one ladder per level carries it, and it is refused until the sweep is done.
+ * against from whichever side it approaches. `gated` is the SWEEP gate — rakhis
+ * AND the customer's order, both required; exactly one ladder per level carries
+ * it, and it is refused until every item is collected.
  */
 export interface LadderDef {
   x: number;
@@ -114,6 +115,21 @@ export interface SpawnerDef {
   jitterSec: number;
   /** Probability a release is a wild (bouncing, ladder-ignoring) barrel. */
   wildChance: number;
+}
+
+/**
+ * One dish of the customer's order — the level's SECOND required collectible.
+ *
+ * `kind` indexes the brand's dish table (`FOOD_PALETTE` / `FOOD_NAMES` in
+ * src/brand/index.ts) and is a NUMBER for exactly the reason `nameIdx` is: a level
+ * row may never hold a display string, or this file stops being reskinnable and
+ * drags the brand module into the sim's import graph. The brand wraps the index,
+ * so a level authored against five dishes still renders on a brand shipping three.
+ */
+export interface FoodDef {
+  x: number;
+  y: number;
+  kind: number;
 }
 
 /**
@@ -166,6 +182,13 @@ export interface StageDef {
   lifts?: LiftDef[];
   spawners: SpawnerDef[];
   rakhis: PointDef[];
+  /**
+   * The order. REQUIRED — no `?` — because it is a gate condition, and an
+   * OPTIONAL gate condition is a level that silently ships with a decorative
+   * objective when somebody forgets the field. Every level states its order, and
+   * a level that wanted none would state `[]` on purpose.
+   */
+  foods: FoodDef[];
   pins?: PointDef[];
   hazards?: { kind: 'fire' | 'oil' | 'spring'; x: number; y: number }[];
 
@@ -184,6 +207,10 @@ export interface StageDef {
   scooters?: ScooterDef[];
   /** Where the masala shakers sit. `shakerCount` says how many of these are live. */
   shakers?: PointDef[];
+  /** Where the helmets sit. `helmetCount` says how many of these are live. */
+  helmets?: PointDef[];
+  /** Where the turbo boosts sit. `turboCount` says how many of these are live. */
+  turbos?: PointDef[];
 
   /**
    * The three throw positions the monkey shifts between, level 10 only. Absent
@@ -205,6 +232,21 @@ export interface StageDef {
 
   shakerCount: number;
   shakerSec: number;
+
+  /**
+   * The powerup COUNTS are required on every level, the position tables are not.
+   *
+   * Same split as `shakerCount`, and required for the same reason: a level's
+   * pressure has to be readable off its row without cross-checking an array's
+   * length, and an optional count would let "how many helmets does level 8 have"
+   * be answered by `undefined` — which reads as zero and is indistinguishable
+   * from a deliberate zero. A zero here is a design statement; a missing field is
+   * an accident.
+   */
+  helmetCount: number;
+  turboCount: number;
+  /** Boost duration. Zero on levels with no turbo — never a leftover from tuning. */
+  turboSec: number;
 
   clearPoints: number;
   timeBonusPerSec: number;
@@ -286,15 +328,22 @@ const LEVEL_1: StageDef = (() => {
       { x: 496, y: 175, intervalSec: 3.4, jitterSec: 0.5, wildChance: 0 },
     ],
 
-    // ─── ALL THREE ON THE WALKING LINE ────────────────────────────────────
+    // ─── ALL THREE ON THE WALKING LINE, AND THE SAME THREE AS BEFORE ──────
     // Not one of them requires a jump, a detour, or a second visit to a floor.
-    // Level 1's job is to teach that rakhis gate the top; it is not the level
-    // that tests whether you can collect them under pressure. A first level that
+    // Level 1's job is to teach that the ORDER gates the top; it is not the level
+    // that tests whether you can collect it under pressure. A first level that
     // asks two questions at once answers neither.
+    //
+    // The three positions are unchanged from when they were three rakhis — only
+    // WHAT sits on each one changed, so the route level 1 was tuned around is the
+    // route it still has. One rakhi and two dishes teaches both halves of the
+    // gate with the smallest possible order.
     rakhis: [
       { x: 280, y: 617 - ON_LINE }, // F1, on the walk from ladder 0 to ladder 1
-      { x: 232, y: 507 - ON_LINE }, // F2, on the walk from ladder 1 to ladder 2
-      { x: 280, y: 299 - ON_LINE }, // F4, on the walk from ladder 3 to ladder 4
+    ],
+    foods: [
+      { x: 232, y: 507 - ON_LINE, kind: 0 }, // F2, on the walk from ladder 1 to ladder 2
+      { x: 280, y: 299 - ON_LINE, kind: 1 }, // F4, on the walk from ladder 3 to ladder 4
     ],
 
     agentStart: { x: 80, y: 706.3333333333334 },
@@ -314,6 +363,9 @@ const LEVEL_1: StageDef = (() => {
     timerSec: 90,
     shakerCount: 0,
     shakerSec: 0,
+    helmetCount: 0,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 1000,
     timeBonusPerSec: 50,
@@ -330,10 +382,14 @@ const LEVEL_2: StageDef = (() => {
     spawners: [
       { x: 496, y: 175, intervalSec: 2.9, jitterSec: 0.5, wildChance: 0 },
     ],
-    rakhis: [
-      { x: 280, y: 617 - ON_LINE },
-      { x: 232, y: 507 - ON_LINE },
-      { x: 280, y: 299 - ON_LINE },
+    // Level 2 is level 1's tower and level 1's route. The order is the same size
+    // and sits on the same three spots; only the DISHES differ, so the second
+    // level reads as the same job for a different customer rather than as a
+    // second thing to learn. See the header on why both levels share one tower.
+    rakhis: [{ x: 280, y: 617 - ON_LINE }],
+    foods: [
+      { x: 232, y: 507 - ON_LINE, kind: 2 },
+      { x: 280, y: 299 - ON_LINE, kind: 3 },
     ],
     agentStart: { x: 80, y: 706.3333333333334 },
     monkeyAt: { x: 496, y: 175 },
@@ -352,6 +408,9 @@ const LEVEL_2: StageDef = (() => {
     timerSec: 90,
     shakerCount: 0,
     shakerSec: 0,
+    helmetCount: 0,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 1200,
     timeBonusPerSec: 50,
@@ -405,7 +464,24 @@ export function towerSurfaceY(i: number, x: number): number {
   return 720 - FLOOR_GAP * i + floorSlope(i) * (x - cx);
 }
 
-/** A pickup sitting on floor `i`'s walking line at `x`. */
+/**
+ * A pickup sitting on floor `i`'s walking line at `x`.
+ *
+ * ─── WHY EVERY DISH OF EVERY ORDER GOES THROUGH THIS FUNCTION ──────────────
+ *
+ * The order is a REQUIRED objective on all ten levels, which means every one of
+ * its dishes is a mandatory visit. A required pickup off the walking line is not
+ * "a bit of extra challenge" — it is a fixed toll on the clock, paid on every
+ * attempt, including the attempts where the player already knows the route. Ten
+ * levels of that is a game about walking.
+ *
+ * So the dishes are placed exactly the way level 10's order pins were: on floors
+ * the sweep already crosses, between the ladder the player arrives by and the
+ * ladder they leave by, so they cost no detour. The tension comes from WHICH SIDE
+ * OF THE DISH THE BARREL IS ON, which is free, renewable and different every run.
+ * The route-ratio budget in tools/validate-levels.ts fails the build if this
+ * discipline slips, so it is checked rather than remembered.
+ */
 function onLine(i: number, x: number): PointDef {
   return { x, y: towerSurfaceY(i, x) - ON_LINE };
 }
@@ -581,8 +657,8 @@ function liftsD(): LiftDef[] {
 // one they can see.
 //
 // L6 IS THE REST BEAT AND MUST NOT READ AS FILLER. Longest timer of the first
-// nine, the most rakhis in the game, a shaker, and a tower the player already
-// knows. It is a playground and a score payday, not a spacer — a rest beat that
+// nine, one pickup on every floor from F1 to F5, a shaker, and a tower the player
+// already knows. It is a playground and a score payday, not a spacer — a rest beat that
 // feels like a gap in the game is a place people stop playing.
 //
 // L9 IS THE HIGHEST DENSITY AND THE SHORTEST TARGET TIME. Intensity, not
@@ -603,7 +679,16 @@ const LEVEL_3: StageDef = (() => {
     girders: t.girders,
     ladders: t.ladders,
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.9, jitterSec: 0.5, wildChance: 0 }],
-    rakhis: [onLine(1, 300), onLine(2, 250), onLine(3, 280), onLine(4, 300)],
+    // The four positions level 3 was tuned around, resplit: one rakhi, three
+    // dishes. The rakhi is on F1, which is a BELT floor — the conveyor carries the
+    // player into it, so the first pickup of the level costs zero seconds and the
+    // level's new mechanic is the thing that hands it over.
+    rakhis: [onLine(1, 300)],
+    foods: [
+      { ...onLine(2, 250), kind: 0 },
+      { ...onLine(3, 280), kind: 1 },
+      { ...onLine(4, 300), kind: 2 },
+    ],
 
     agentStart: onFloor(0, 80),
     monkeyAt: onFloor(5, 496),
@@ -621,6 +706,9 @@ const LEVEL_3: StageDef = (() => {
 
     shakerCount: 0,
     shakerSec: 0,
+    helmetCount: 0,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 1400,
     timeBonusPerSec: 50,
@@ -640,7 +728,12 @@ const LEVEL_4: StageDef = (() => {
     // buys that back with air between the barrels. The new mechanic is the
     // lesson; the barrels are not allowed to be a second one.
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 3.2, jitterSec: 0.5, wildChance: 0 }],
-    rakhis: [onLine(1, 260), onLine(2, 270), onLine(3, 240), onLine(4, 280)],
+    rakhis: [onLine(1, 260)],
+    foods: [
+      { ...onLine(2, 270), kind: 3 },
+      { ...onLine(3, 240), kind: 4 },
+      { ...onLine(4, 280), kind: 0 },
+    ],
 
     // Two flames and the answer to them, on the same level and in that order:
     // the shaker sits on F2, one floor below the first flame's deck.
@@ -662,6 +755,9 @@ const LEVEL_4: StageDef = (() => {
 
     shakerCount: 1,
     shakerSec: 6,
+    helmetCount: 0,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 1600,
     timeBonusPerSec: 50,
@@ -678,12 +774,26 @@ const LEVEL_5: StageDef = (() => {
     lifts: liftsD(),
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.7, jitterSec: 0.5, wildChance: 0 }],
 
-    // THE F4 RAKHI IS THE FREE ONE. It sits in car A's column at the top of its
+    // THE F4 DISH IS THE FREE ONE. It sits in car A's column at the top of its
     // travel, so a player who rides up collects it without stopping — and a
     // player who takes the ladder walks twelve units right and gets it anyway.
     // A collectible that costs zero seconds is what makes "collect them all"
-    // read as generous rather than as a tax on the clock.
-    rakhis: [onLine(1, 280), onLine(2, 290), onLine(3, 300), onLine(4, 436), onLine(5, 250)],
+    // read as generous rather than as a tax on the clock, and it is now the ORDER
+    // that gets the gift rather than the rakhis, because the order is the bigger
+    // half of the sweep from here on.
+    rakhis: [onLine(1, 280), onLine(2, 290)],
+    foods: [
+      { ...onLine(3, 300), kind: 1 },
+      { ...onLine(4, 436), kind: 2 },
+      { ...onLine(5, 250), kind: 3 },
+    ],
+
+    // THE FIRST HELMET IN THE GAME, on F2, one floor BELOW the F3 traverse that
+    // this level's deaths happen on (see the shaker note). Deliberately in front
+    // of the danger rather than on top of it: a charge the player is already
+    // wearing when they arrive is one they get to spend on the mistake, whereas a
+    // charge sitting on the killing floor is one they collect after surviving it.
+    helmets: [onLine(2, 250)],
 
     // MID-FLOOR LANES, deliberately clear of every ladder head (144/152/168/
     // 300/416/424). A lane over a ladder is a lane the player meets at the one
@@ -718,6 +828,9 @@ const LEVEL_5: StageDef = (() => {
     // the floor that kills you, not long enough to climb the tower under it.
     shakerCount: 1,
     shakerSec: 4,
+    helmetCount: 1,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 1800,
     timeBonusPerSec: 50,
@@ -733,16 +846,19 @@ const LEVEL_6: StageDef = (() => {
     ladders: t.ladders,
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.6, jitterSec: 0.5, wildChance: 0 }],
 
-    // SIX RAKHIS — the most in the game — all of them on the line, two of them
-    // on the same floor. This is the payday: a player who sweeps cleanly banks a
-    // six-long chain, and the chain cap is what the score screen is made of.
-    rakhis: [
-      onLine(1, 300),
-      onLine(2, 330),
-      onLine(2, 210),
-      onLine(3, 280),
-      onLine(4, 300),
-      onLine(5, 210),
+    // FIVE PICKUPS, ONE CHAIN — two rakhis and a three-dish order, all on the
+    // line, one per floor from F1 to F5. This is the payday: the chain is shared
+    // across both collectibles (see game/session.ts), so a clean sweep here banks
+    // a five-long chain, and the chain cap is what the score screen is made of.
+    //
+    // The old sixth pickup — a second one on F2 — is simply gone rather than
+    // relocated. The totals across all ten levels stay flat against the 47 they
+    // were tuned at, and a rest beat is the right place to spend the difference.
+    rakhis: [onLine(1, 300), onLine(2, 330)],
+    foods: [
+      { ...onLine(3, 280), kind: 1 },
+      { ...onLine(4, 300), kind: 2 },
+      { ...onLine(5, 210), kind: 3 },
     ],
     shakers: [onLine(3, 330)],
 
@@ -762,6 +878,9 @@ const LEVEL_6: StageDef = (() => {
 
     shakerCount: 1,
     shakerSec: 8,
+    helmetCount: 0,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 2000,
     timeBonusPerSec: 50,
@@ -776,7 +895,18 @@ const LEVEL_7: StageDef = (() => {
     girders: t.girders,
     ladders: t.ladders,
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.5, jitterSec: 0.45, wildChance: 0.12 }],
-    rakhis: [onLine(1, 260), onLine(2, 270), onLine(3, 240), onLine(4, 280), onLine(5, 360)],
+    rakhis: [onLine(1, 260), onLine(3, 240)],
+    // FOUR DISHES, and the first one is on the GROUND FLOOR — on the walk from
+    // the start to the first ladder, before a single barrel has reached the
+    // player. The biggest order so far opens with the easiest item in the game,
+    // which is how a level that removes the beginner's crutch avoids also
+    // removing their footing.
+    foods: [
+      { ...onLine(0, 220), kind: 0 },
+      { ...onLine(2, 270), kind: 1 },
+      { ...onLine(4, 280), kind: 2 },
+      { ...onLine(5, 360), kind: 3 },
+    ],
 
     // Fixed cadence, no jitter. See ScooterDef.
     scooters: [
@@ -784,6 +914,14 @@ const LEVEL_7: StageDef = (() => {
       { ...onFloor(3, 500), dir: -1, speed: 132, intervalSec: 5.5, phase: 0.5 },
     ],
     shakers: [onLine(2, 320)],
+
+    // THE FIRST TURBO, ON THE LEVEL WHERE WALKING AWAY STOPPED WORKING, and on
+    // F1 — the first floor above the ground, which is where the player meets a
+    // 158-unit barrel for the first time. 1.45 × 150 is 217, so for five seconds
+    // the old crutch is handed back: the answer to a barrel is once again "walk
+    // away from it". Teaching a powerup by using it to restore a rule the player
+    // has just lost is the clearest lesson this game can give.
+    turbos: [onLine(1, 320)],
 
     agentStart: onFloor(0, 80),
     monkeyAt: onFloor(5, 496),
@@ -801,6 +939,9 @@ const LEVEL_7: StageDef = (() => {
 
     shakerCount: 1,
     shakerSec: 6,
+    helmetCount: 0,
+    turboCount: 1,
+    turboSec: 5,
 
     clearPoints: 2400,
     timeBonusPerSec: 50,
@@ -818,19 +959,27 @@ const LEVEL_8: StageDef = (() => {
     ladders: t.ladders,
     lifts: liftsD(),
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.4, jitterSec: 0.45, wildChance: 0.14 }],
-    rakhis: [
-      onLine(1, 280),
-      onLine(2, 200),
-      onLine(2, 290),
-      onLine(4, 270),
-      onLine(4, 436),
-      onLine(5, 250),
+    rakhis: [onLine(1, 280), onLine(2, 290)],
+    foods: [
+      { ...onLine(2, 200), kind: 0 },
+      { ...onLine(4, 270), kind: 1 },
+      { ...onLine(4, 436), kind: 2 },
+      { ...onLine(5, 250), kind: 3 },
     ],
     // NO SHAKER. Layout D's second visit is the level where the player is
     // expected to own the tower: they have already cleared it once, the route is
     // memorised, and the belts are the only new thing. Handing them the powerup
     // as well measured out at a third of a death per run — a level 8 easier than
     // level 4, which is not a curve, it is a plateau with a bump in it.
+    //
+    // A HELMET INSTEAD, and the two are not interchangeable. The shaker is a
+    // window that rewrites six seconds of the level; the helmet is one free
+    // mistake and changes nothing else. On the level where the player is meant to
+    // prove they own the tower, forgiving a single error is the right size of
+    // help — it removes the sting of one death without removing the floor's
+    // pressure for even a second. Placed on F3, the traverse between the two
+    // belt floors, so it is picked up between the level's two new problems.
+    helmets: [onLine(3, 300)],
 
     agentStart: onFloor(0, 80),
     monkeyAt: onFloor(5, 496),
@@ -844,6 +993,9 @@ const LEVEL_8: StageDef = (() => {
 
     shakerCount: 0,
     shakerSec: 0,
+    helmetCount: 1,
+    turboCount: 0,
+    turboSec: 0,
 
     clearPoints: 2800,
     timeBonusPerSec: 50,
@@ -874,7 +1026,16 @@ const LEVEL_9: StageDef = (() => {
       // is not difficulty, it is a stopped game.
       { x: 448, y: towerSurfaceY(3, 448), intervalSec: 6, jitterSec: 0.5, wildChance: 0 },
     ],
-    rakhis: [onLine(1, 300), onLine(2, 300), onLine(3, 280), onLine(4, 340), onLine(5, 340)],
+    rakhis: [onLine(1, 300), onLine(3, 280)],
+    // BOTH F2 AND F4 DISHES SIT ON THE FAR PIECE OF A CUT FLOOR — past the gap
+    // the player arrives needing to cross anyway, never suspended over it. A
+    // required collectible above a hole is a level that asks for a jump the
+    // player must land twice: once to progress, once to not lose the item.
+    foods: [
+      { ...onLine(2, 300), kind: 0 },
+      { ...onLine(4, 340), kind: 1 },
+      { ...onLine(5, 340), kind: 2 },
+    ],
 
     // ON THE CUT FLOORS, both of them, and NOWHERE ELSE. A flame on a split
     // deck contests the gap jump, which is what this level is about; two
@@ -896,6 +1057,19 @@ const LEVEL_9: StageDef = (() => {
     // one shaker is placed where the pressure starts rather than as a reward for
     // having already survived it.
     shakers: [onLine(1, 300)],
+    // THE FULL KIT, ON THE DENSEST LEVEL, AND DELIBERATELY BACK-LOADED. Both sit
+    // on the FAR piece of a cut floor: the helmet past F2's gap, the turbo past
+    // F4's. The player therefore crosses both gaps unaided and is paid for it
+    // afterwards, which is the only ordering that leaves this level's signature
+    // moment — the jump over the hole — an actual test.
+    //
+    // Measured, and the ordering is the whole difference. Every floor the turbo is
+    // moved DOWN to hands the boost to the gap crossings and softens the level:
+    // F3 clears 5 of 8 at 1.13 deaths a run, F2 clears 6 of 8 at 0.75. Back-loaded
+    // onto F4 it is 4 of 8 at 1.50 — a level 9 that is still the hardest thirty
+    // seconds in the game, which is the shape this level is for.
+    helmets: [onLine(2, 340)],
+    turbos: [onLine(4, 300)],
 
     agentStart: onFloor(0, 80),
     monkeyAt: onFloor(5, 496),
@@ -911,6 +1085,9 @@ const LEVEL_9: StageDef = (() => {
 
     shakerCount: 1,
     shakerSec: 6,
+    helmetCount: 1,
+    turboCount: 1,
+    turboSec: 5,
 
     clearPoints: 3200,
     timeBonusPerSec: 50,
@@ -928,13 +1105,18 @@ const LEVEL_10: StageDef = (() => {
       { x: 468, yTop: towerSurfaceY(3, 468), yBottom: towerSurfaceY(1, 468), w: 30, speed: 50, phase: 0 },
     ],
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.2, jitterSec: 0.4, wildChance: 0.18 }],
-    rakhis: [
-      onLine(1, 280),
-      onLine(2, 200),
-      onLine(2, 270),
-      onLine(3, 280),
-      onLine(4, 280),
-      onLine(5, 340),
+    // THREE RAKHIS AND A FOUR-DISH ORDER — the largest of both in the game, and
+    // still seven pickups against the six the finale was tuned with. One dish is
+    // on F0, which is the one floor the player crosses before the first barrel
+    // arrives: the biggest order in the game opens with a free item, because a
+    // finale should feel like a victory lap that gets harder, not like a tax
+    // levied at the front door.
+    rakhis: [onLine(1, 280), onLine(3, 280), onLine(5, 340)],
+    foods: [
+      { ...onLine(0, 320), kind: 0 },
+      { ...onLine(2, 200), kind: 1 },
+      { ...onLine(2, 270), kind: 2 },
+      { ...onLine(4, 280), kind: 3 },
     ],
 
     // THE ORDER PINS. Four, all on floors the route already crosses, and the
@@ -958,6 +1140,28 @@ const LEVEL_10: StageDef = (() => {
     // stacking two (see game/hazards.ts), so placing both early would spend the
     // level's whole safety net on its easiest floors.
     shakers: [onLine(1, 220), onLine(4, 340)],
+    // EVERY TOOL THE GAME HAS, ON THE FLOORS THE SHAKERS DO NOT COVER. Shakers
+    // are on F1 and F4; the helmet takes F2 (the flame deck) and the turbo F3 (the
+    // scooter traverse), so no floor of the finale carries two answers to the same
+    // problem and no floor carries none.
+    //
+    // THE TURBO'S FLOOR IS THE WHOLE DIFFICULTY OF THIS LEVEL, measured, and the
+    // answer is "the middle". Every other floor trivialises the finale outright:
+    // on F1 the bot clears 8 of 8 without dying, because a boost taken early
+    // blitzes the bottom of the tower before it has become dangerous; on F4 also 8
+    // of 8, because that is the last long traverse under the 195-unit barrel
+    // train; on F5, 8 of 8 again, because six seconds covers the whole approach to
+    // the gated ladder. On F3 it is 6 of 8 at 0.88 deaths a run — the boost buys
+    // the player exactly one hard floor and leaves the other five intact.
+    //
+    // The x is 330 rather than 300 for a reason that is not tuning: F3 already
+    // carries a pin at 240 and a rakhi at 280, and two pickups whose 22-unit radii
+    // overlap are two pickups the player cannot aim at separately. The duration is
+    // NOT the dial here — dropping turboSec from 6 to 4 moved nothing measurable,
+    // because what this powerup is worth on this level is decided by which floor
+    // it is spent on, not by how long it lasts.
+    helmets: [onLine(2, 320)],
+    turbos: [onLine(3, 330)],
 
     agentStart: onFloor(0, 80),
     monkeyAt: onFloor(5, 496),
@@ -980,6 +1184,9 @@ const LEVEL_10: StageDef = (() => {
 
     shakerCount: 2,
     shakerSec: 7,
+    helmetCount: 1,
+    turboCount: 1,
+    turboSec: 6,
 
     clearPoints: 4000,
     timeBonusPerSec: 60,

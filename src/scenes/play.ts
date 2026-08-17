@@ -53,7 +53,7 @@
  * first round rather than pinning every round to one level.
  */
 
-import { COLORS, withAlpha } from '../brand';
+import { COLORS, FOOD_PALETTE, foodKind, withAlpha } from '../brand';
 import { COPY, t } from '../config/copy';
 import { font, MOTION, RADIUS, SPACE, TEXT, TRACK, WEIGHT } from '../config/theme';
 import { AGENT, BARREL, EASE, RAKHI, STAGE, TIMER, UI } from '../config/tuning';
@@ -69,7 +69,17 @@ import type { Controls } from '../input/controls';
 import { PAD } from '../input/dpad';
 import type { PointerKind } from '../core/types';
 import type { Viewport } from '../render/canvas';
-import { attachFx, drawFx, handleEvent, resetFx, updateFx } from '../render/fx';
+import {
+  attachFx,
+  burst,
+  drawFx,
+  handleEvent,
+  hitStop,
+  popup,
+  resetFx,
+  shake,
+  updateFx,
+} from '../render/fx';
 import {
   hudRect,
   inset,
@@ -80,7 +90,7 @@ import {
   stageRect,
   type Rect,
 } from '../render/layout';
-import { drawEmblem } from '../render/mark';
+import { drawEmblem, drawMark, MARK_MIN_W, markHeight } from '../render/mark';
 import { disc, fillRound, roundRect, strokeRound, trackedText } from '../render/shapes';
 import { agentPose, drawAgentArt } from '../render/art/agent';
 import { barrelPhase, drawBarrelArt } from '../render/art/barrel';
@@ -106,6 +116,13 @@ import {
   flamePhase,
 } from '../render/art/hazards';
 import { drawRakhiArt, rakhiShine } from '../render/art/rakhi';
+import { drawFoodArt, drawFoodIconArt, foodBob } from '../render/art/food';
+import {
+  drawHelmetArt,
+  drawHelmetWornArt,
+  drawTurboArt,
+  drawTurboTrailArt,
+} from '../render/art/powerups';
 import { registerWarm, rewarm, setBakeContext, unregisterWarm } from '../render/prerender';
 import { drawStageBackdrop, drawStageLayer, stageLayer } from '../render/stageView';
 import {
@@ -115,6 +132,7 @@ import {
   card,
   hitTest,
   iconLock,
+  iconOrderBag,
   iconPip,
   label,
   scrim,
@@ -168,8 +186,17 @@ const END_HOLD_SEC = 1.6;
 
 // ─── World-layer geometry, in STAGE units ───────────────────────────────────
 
-/** The shutter box over the gated ladder's mouth. */
-const SHUTTER_W = 76;
+/**
+ * The shutter box over the gated ladder's mouth.
+ *
+ * 88 RATHER THAN 76, AND THE TWELVE UNITS ARE THE SECOND COUNT'S. The gate now
+ * needs the collectibles AND the dishes, so the sign has two glyphs and two
+ * numerals on one line (see `drawShutterCounts`); at 76 the group only fitted by
+ * dropping the digits to TEXT.micro, and the digits are the message. Widening the
+ * SIGN costs nothing — it is presentation over a ladder mouth, it carries no
+ * collision, and the box is still narrower than the girder it hangs under.
+ */
+const SHUTTER_W = 88;
 const SHUTTER_H = 62;
 
 /**
@@ -187,6 +214,38 @@ const HOP_RATE = 7;
 
 /** Below this the agent is standing, not running. */
 const RUN_EPS = 6;
+
+// ─── The order counter, in the HUD's left third ─────────────────────────────
+//
+// THE BAND DID NOT GROW. BANDS.hud is 112 units and BANDS must keep summing to
+// REF.H (assertion at src/render/layout.ts:86) — a fourth HUD row could only be
+// paid for out of BANDS.stage, which rescales the playfield. What pays for the
+// second counter instead is that a level's collectibles are now 1–3 rather than
+// 3–6: at PIP_R = 11 on a 30-unit pitch the pip strip needs 30–90 units of a
+// 224-unit column instead of 90–180, and the dishes go in the space that freed.
+//
+// It is a GLYPH AND A NUMERAL rather than a second pip strip on purpose. Two
+// strips of near-identical dots in one eyeline is the fastest way to make the
+// one number the gate depends on unreadable — see the header of art/food.ts on
+// why the dishes are not allowed to impersonate the collectible anywhere.
+
+/** Collected-pip radius. The strip's pitch is PIP_R * 2 + SPACE.sm. */
+const PIP_R = 11;
+/** The takeaway bag beside the pips. Inside food.ts's stated 16–20 HUD range. */
+const FOOD_ICON = 18;
+/** Gap between the pip strip and the dish readout. */
+const COUNTER_GAP = SPACE.md;
+/**
+ * The punch's peak scale — the same 0.55 growth the pips get, named because the
+ * HUD glyph has to BAKE at the peak and be scaled DOWN to rest.
+ *
+ * prerender's cache key is the DEVICE SIZE, so a glyph whose size is driven by a
+ * continuous timer bakes a new canvas every frame it animates. Baking once at
+ * the top of the punch and shrinking with a transform is one canvas, and it is
+ * the crisper of the two at every scale. `drawHelmetWornArt` does the same thing
+ * for the same reason.
+ */
+const PUNCH_MAX = 1.55;
 
 // ─── URL overrides ──────────────────────────────────────────────────────────
 
@@ -224,8 +283,17 @@ export class PlayScene implements GameScene {
   private stateT = 0;
   /** 0 = shutter down, 1 = fully rolled. Animated over MOTION.shutterRollSec. */
   private shutterT = 0;
-  /** Per-rakhi punch timer for the HUD tracker, seconds remaining. */
+  /**
+   * Per-tracked-item punch timer for the HUD, seconds remaining.
+   *
+   * One slot per collectible, plus ONE more at `foodSlot` for the whole order —
+   * the dishes share a single glyph in the HUD (see FOOD_ICON), so they share a
+   * single punch. Reusing this array rather than adding a second field is what
+   * keeps the decay loop in update() the only place that ages a punch.
+   */
   private punch: number[] = [];
+  /** Index into `punch` for the dish glyph. Set in enter(); see `punch`. */
+  private foodSlot = 0;
   /** Previous frame's agent state, so jump/land cues are edges rather than polls. */
   private prevAgent: AgentState = 'run';
   /** Latched so the urgency cue fires once per level, not once per frame under 10s. */
@@ -326,7 +394,8 @@ export class PlayScene implements GameScene {
     this.gate = w.stage.ladders.find((l) => l.gated) ?? null;
 
     this.score = w.session.score;
-    this.punch = new Array<number>(w.session.rakhiTotal).fill(0);
+    this.foodSlot = w.session.rakhiTotal;
+    this.punch = new Array<number>(w.session.rakhiTotal + 1).fill(0);
     this.prevAgent = w.agent.state;
     this.warned = false;
     this.barrelsJumped = 0;
@@ -609,6 +678,76 @@ export class PlayScene implements GameScene {
         haptic(HAPTIC.pickup);
         if (e.index < this.punch.length) this.punch[e.index] = MOTION.pipPunchSec;
         break;
+      // THE SAME BEAT AS A COLLECTIBLE, DELIBERATELY.
+      //
+      // One order, one chain (see the note on FoodTaken in core/events.ts), so a
+      // dish must not feel like a lesser pickup than a rakhi — the gate weighs
+      // them equally and a quieter cue would teach the player it does not. The
+      // burst is in the DISH'S own body colour, which is the one thing here that
+      // is not shared with the rakhi: it is how the eye confirms what was taken.
+      case 'FoodTaken': {
+        this.sfx.play('rakhi');
+        haptic(HAPTIC.pickup);
+        this.punch[this.foodSlot] = MOTION.pipPunchSec;
+        const dish = FOOD_PALETTE[foodKind(e.kind)];
+        const x = this.ox + e.x;
+        const y = this.oy + e.y;
+        if (dish) burst(x, y, { count: 14, color: dish.body, speed: 200, size: 4 });
+        popup(x, y - 18, e.chain > 1 ? `+${e.chain}x` : '+', COLORS.scorePopBonus);
+        shake(2);
+        break;
+      }
+
+      // Both powerups get the pickup cue and a burst in their OWN meaning's
+      // colour — guard for the helmet, go for the turbo — rather than the
+      // collectible's gold. A powerup that flashes gold reads as progress toward
+      // the gate, which is the one thing it is not.
+      case 'HelmetTaken':
+        this.sfx.play('rakhi');
+        haptic(HAPTIC.pickup);
+        burst(this.ox + e.x, this.oy + e.y, {
+          count: 14,
+          color: COLORS.powerupGuard,
+          speed: 220,
+          size: 4,
+        });
+        shake(3);
+        break;
+
+      case 'TurboTaken':
+        this.sfx.play('rakhi');
+        haptic(HAPTIC.pickup);
+        burst(this.ox + e.x, this.oy + e.y, {
+          count: 16,
+          color: COLORS.powerupGo,
+          speed: 260,
+          size: 4,
+        });
+        shake(4);
+        break;
+
+      // ── A LIFE SAVED, AND IT MUST NOT READ AS A LIFE LOST ──────────────────
+      //
+      // This fires on the frame a hit would otherwise have killed the player, so
+      // it lands in the same instant they expect the death flash — and if it is
+      // quieter than `AgentHit` they will believe they died and lost the helmet
+      // both. So it is the loudest positive cue in the round: the smash, the
+      // clear haptic, a hit-stop, and a word. The shake is under AgentHit's 12,
+      // because the screen must still say "that went well".
+      case 'HelmetBroke':
+        this.sfx.play('smash');
+        haptic(HAPTIC.clear);
+        hitStop(0.1);
+        shake(8);
+        burst(this.ox + e.x, this.oy + e.y, {
+          count: 20,
+          color: COLORS.powerupGuard,
+          speed: 260,
+          size: 5,
+        });
+        popup(this.ox + e.x, this.oy + e.y - 26, COPY.toastHelmetSave, COLORS.powerupGuard);
+        break;
+
       case 'GateOpened':
         this.sfx.play('unlock');
         haptic(HAPTIC.unlock);
@@ -647,6 +786,12 @@ export class PlayScene implements GameScene {
       score: s.score,
       rakhis: s.rakhis,
       rakhisTotal: s.rakhiTotal,
+      // The dishes come off the SAME summary as the collectibles, not off a
+      // scene-side tally: the receipt's headline row adds the two together, and
+      // two numbers added from two different sources is how a receipt ends up
+      // claiming 5/6 of an order the player actually completed.
+      food: s.foods,
+      foodTotal: s.foodTotal,
       barrelsJumped: this.barrelsJumped,
       timeLeft: Math.floor(s.timeLeft),
       // Perfect is zero deaths on this level, which is also what the streak
@@ -724,6 +869,7 @@ export class PlayScene implements GameScene {
     this.drawCustomer(ctx, w);
     this.drawThrower(ctx, w);
     this.drawRakhis(ctx, w, simTime);
+    this.drawFoods(ctx, w, simTime);
     this.drawPickups(ctx, w, simTime);
     this.drawHazards(ctx, w, alpha, simTime);
     this.drawBarrels(ctx, w, alpha);
@@ -784,6 +930,18 @@ export class PlayScene implements GameScene {
       // same offer and the player has already learnt what that pulse means.
       const pulse = (Math.sin(simTime * 3.4) + 1) * 0.5;
       drawShakerArt(ctx, s.x, s.y, this.px, pulse);
+    }
+    // The two guards. NO PULSE ON EITHER, and that is the distinction being
+    // drawn: the halo is the shaker's offer of a rule change for a few seconds,
+    // and a helmet sitting still reads as equipment rather than as a timer the
+    // player is already late for.
+    for (const hm of w.hazards.helmets) {
+      if (hm.taken) continue;
+      drawHelmetArt(ctx, hm.x, hm.y, this.px);
+    }
+    for (const tb of w.hazards.turbos) {
+      if (tb.taken) continue;
+      drawTurboArt(ctx, tb.x, tb.y, this.px);
     }
   }
 
@@ -875,6 +1033,23 @@ export class PlayScene implements GameScene {
     }
   }
 
+  /**
+   * The dishes. Same loop, same bob and the same tuning numbers as the rakhis.
+   *
+   * `foodBob` returns a -1…+1 PHASE rather than an offset, so the amplitude here
+   * is RAKHI.bobAmp — the collectible's own. Two collectibles on one girder
+   * hovering at two different heights would read as two different kinds of
+   * object, one of which is broken; they are one order, so they breathe together.
+   */
+  private drawFoods(ctx: CanvasRenderingContext2D, w: World, simTime: number): void {
+    const pts = w.params.def.foods;
+    for (let i = 0; i < pts.length; i++) {
+      if (w.session.foodTaken[i]) continue;
+      const p = pts[i]!;
+      drawFoodArt(ctx, p.x, p.y + foodBob(simTime, i) * RAKHI.bobAmp, this.px, p.kind);
+    }
+  }
+
   private drawBarrels(ctx: CanvasRenderingContext2D, w: World, alpha: number): void {
     w.barrels.pool.forEach((b) => {
       if (!b.live) return;
@@ -907,11 +1082,41 @@ export class PlayScene implements GameScene {
     // temporary. 12Hz is fast enough to be obviously deliberate.
     if (a.invuln > 0 && Math.floor(simTime * 12) % 2 === 0) ctx.globalAlpha = 0.35;
 
+    const h = w.hazards;
+
+    // ── THE BOOST TRAIL, UNDER THE AGENT AND BEHIND HIM ────────────────────
+    //
+    // Drawn BEFORE the body, so the bag — recognition cue #1 of the whole
+    // character (see art/agent.ts) — paints over the streaks rather than being
+    // striped by them. Offset against `face`, because a trail on the leading
+    // side is not a trail, it is a thing he is about to run into.
+    //
+    // It blinks over the last HAZARD.turboWarnSec at the same 12Hz as the
+    // invulnerability flash and the held shaker: three different states, one
+    // vocabulary for "this is about to stop".
+    if (h.turboLeft > 0 && !(h.turboWarn && Math.floor(simTime * 12) % 2 === 0)) {
+      drawTurboTrailArt(ctx, x - a.face * 30, y - 18, this.px, Math.floor(simTime * 12));
+    }
+
     // The run phase comes from the SIM position for the same reason the barrel's
     // does, and `moving` from vx so that a player pressed against a wall stands
     // still instead of running on the spot.
     const pose = agentPose(a.state, body.x, body.y, Math.abs(body.vx) > RUN_EPS);
     drawAgentArt(ctx, x, y, this.px, pose, a.face);
+
+    // ── THE HELMET, BESIDE THE HEAD AND NEVER OVER IT ──────────────────────
+    //
+    // `helmetOn` is a BOOLEAN, not a timer: the guard is spent by a hit, not by
+    // the clock, so there is nothing to warn about and this does not blink. It
+    // is a BADGE — art/powerups.ts pre-scales it to half for exactly this — and
+    // it sits on the leading side of the head, which is the one part of the
+    // silhouette the bag never occupies.
+    // ABOVE the shoulder, not level with the head: at head height the badge and
+    // the rider's own helmet are two dark domes side by side and he reads as
+    // having two heads (checked on level 5). Lifted clear, it reads as a status
+    // pinned to him — and it still never crosses the bag, which is on the other
+    // side of the body entirely.
+    if (h.helmetOn) drawHelmetWornArt(ctx, x + a.face * 16, y - 50, this.px);
 
     // THE POWERUP IS VISIBLE ON THE PLAYER, NOT ONLY IN THE HUD.
     //
@@ -921,7 +1126,6 @@ export class PlayScene implements GameScene {
     // waste the window. So he carries it, and it blinks over the last
     // HAZARD.shakerWarnSec exactly as the invulnerability blink does, at the
     // same 12Hz, because it is the same statement: this is about to stop.
-    const h = w.hazards;
     if (h.shakerLeft > 0 && !(h.shakerWarn && Math.floor(simTime * 12) % 2 === 0)) {
       drawShakerHeldArt(ctx, x + a.face * 15, y - 24, this.px, a.face);
     }
@@ -969,18 +1173,89 @@ export class PlayScene implements GameScene {
     // rendering fault rather than as a rule.
     const cy = top + SHUTTER_H * 0.3;
     iconLock(ctx, cx, cy, 18);
-    ctx.fillStyle = COLORS.shutterLockIcon;
-    ctx.font = font(TEXT.body, WEIGHT.display);
-    ctx.textBaseline = 'middle';
-    trackedText(
-      ctx,
-      `${w.session.rakhiCount}/${w.session.rakhiTotal}`,
-      cx,
-      cy + 22,
-      0,
-      'center',
-    );
+    this.drawShutterCounts(ctx, w, cx, cy + 22);
     ctx.restore();
+  }
+
+  /**
+   * ═══ BOTH TOTALS, ONE LINE, AND WHICH ONE IS OUTSTANDING ═══════════════════
+   *
+   * THE FAILURE THIS PREVENTS: a shut door with no reason on it. The gate now
+   * needs the collectibles AND the dishes, so a single count satisfied at 3/3
+   * beside a ladder that still refuses the player is worse than no count at all —
+   * it is a number that says "you are done" over a door that says "you are not",
+   * and the player concludes the game is broken. Whatever else this drawing gets
+   * wrong, it has to answer WHICH.
+   *
+   * It answers with EMPHASIS, not with a word: a satisfied pair is dimmed and the
+   * outstanding pair stays at full strength, so the bright half of the line is
+   * always the thing still owed. That needs no legend and survives being 40 units
+   * wide on a phone, which "Rakhis 3/3 · Order 1/4" does not.
+   *
+   * ONE LINE, NEVER TWO. `cy` is `top + SHUTTER_H * 0.3` and the padlock is
+   * centred on it — see the note at the call site. A second line at +40 leaves
+   * the 62-unit box, and buying the room by moving cy to ~0.22 puts the digits
+   * back through the shackle, which is the exact bug that comment records.
+   *
+   * The digits START at TEXT.label and drop to TEXT.micro only if the assembled
+   * group would not fit SHUTTER_W — measured rather than assumed, because the
+   * group's width depends on the numerals the level happens to have. A level with
+   * no dishes keeps the original single count at full size.
+   */
+  private drawShutterCounts(
+    ctx: CanvasRenderingContext2D,
+    w: World,
+    cx: number,
+    cy: number,
+  ): void {
+    const s = w.session;
+    const rakhiText = `${s.rakhiCount}/${s.rakhiTotal}`;
+    const foodText = `${s.foodCount}/${s.foodTotal}`;
+    const showFood = s.foodTotal > 0;
+
+    // Glyph widths and the gaps around them. The collectible is a PLAIN DISC —
+    // the tracker pip's own silhouette, which is where the player learnt it — and
+    // not a miniature of the pickup: at 10 units the medallion's two threads are
+    // three pixels of noise either side of the disc that carries the whole read,
+    // and the first attempt at this line drew a squiggle rather than a rakhi.
+    const gR = 10;
+    const gF = 13;
+    const tight = 2;
+    const mid = 8;
+
+    ctx.textBaseline = 'middle';
+    const groupW = (size: number): number => {
+      ctx.font = font(size, WEIGHT.display);
+      const wr = gR + tight + ctx.measureText(rakhiText).width;
+      return showFood ? wr + mid + gF + tight + ctx.measureText(foodText).width : wr;
+    };
+
+    // 4 units of slack inside the clip, so a glyph edge never touches the slats.
+    const fit = SHUTTER_W - 4;
+    let total = groupW(TEXT.label);
+    if (total > fit) total = groupW(TEXT.micro);
+
+    const full = COLORS.shutterLockIcon;
+    const done = withAlpha(COLORS.shutterLockIcon, 0.45);
+
+    let px = cx - total / 2;
+    const rakhiColor = s.rakhiCount >= s.rakhiTotal ? done : full;
+    disc(ctx, px + gR / 2, cy, gR / 2, rakhiColor);
+    px += gR + tight;
+    ctx.fillStyle = rakhiColor;
+    px += trackedText(ctx, rakhiText, px, cy, 0, 'left');
+    if (!showFood) return;
+
+    px += mid;
+    // `iconOrderBag`, NOT `drawFoodIconArt`: that drawing is a silhouette in the
+    // HUD's ink with a cuff knocked out in the HUD's paper, and on these slats it
+    // is an invisible bag with a pale scratch through it — which is precisely how
+    // this shipped the first time. See the note on iconOrderBag in render/ui.ts.
+    const foodColor = s.foodCount >= s.foodTotal ? done : full;
+    iconOrderBag(ctx, px + gF / 2, cy, gF, foodColor);
+    px += gF + tight;
+    ctx.fillStyle = foodColor;
+    trackedText(ctx, foodText, px, cy, 0, 'left');
   }
 
   // ── Masthead ──────────────────────────────────────────────────────────────
@@ -1009,6 +1284,47 @@ export class PlayScene implements GameScene {
       RADIUS.chip,
     );
     drawEmblem(ctx, r.x + SPACE.lg, r.y + SPACE.lg, size);
+
+    // ── THE WORDMARK, UNDER THE PLATE ────────────────────────────────────────
+    //
+    // The band is 96 units and the plate ends at 76, with the rule at 94 — so
+    // there are ~18 free units and every number below is chosen to fit them
+    // rather than to look nice in isolation.
+    //
+    // WHY THE WORDMARK CUT AT EXACTLY 56 UNITS, AND WHY A KNOCKOUT IS LEGAL:
+    //
+    // · `wordmark` declares aspect 611/177 ≈ 3.452, so at w = 56 it is 16.2
+    //   units tall. That fits the 18-unit gap AND its width is exactly the
+    //   plate's 56, so the two stack as one left-aligned column.
+    // · 56 is precisely MARK_MIN_W. drawMark throws below it with nothing to
+    //   spare, so this must not be shaved: if the gap ever has to shrink, use
+    //   drawEmblem (no minimum) instead of a smaller mark.
+    // · `wordmark` is the ONLY cut that is not AssetRef.opaque — it is line art
+    //   on transparency — which is what makes `knockout: 'paper'` legal here and
+    //   a throw for every other cut. See the comment on AssetRef.opaque in
+    //   src/brand/types.ts: a knockout tints ALPHA, so on a plated cut it paints
+    //   a blank white tile with nothing logged. Knocked out to paper, the
+    //   wordmark sits white directly on the orange masthead and needs no second
+    //   paper plate under it.
+    // · NOT the brand name set as type. src/scenes/splash.ts:134 records why:
+    //   the mark above already says "Swiggy", and setting the brand's name twice
+    //   in one eyeline is a known failure — and the wordmark is modified Futura,
+    //   which Poppins would visibly miss.
+    //
+    // If the gap ever needs more room, shave the emblem (size -= 6). BANDS must
+    // keep summing to REF.H — there is a module-load assertion in
+    // src/render/layout.ts — and the stage band must not give up units.
+    const wordW = MARK_MIN_W;
+    const wordH = markHeight(wordW, 'wordmark');
+    const gapTop = r.y + SPACE.lg + size + pad;
+    const gapBot = r.y + r.h - 2;
+    drawMark(
+      ctx,
+      r.x + SPACE.lg - pad,
+      gapTop + (gapBot - gapTop - wordH) / 2,
+      wordW,
+      { cut: 'wordmark', knockout: 'paper' },
+    );
 
     label(
       ctx,
@@ -1043,20 +1359,59 @@ export class PlayScene implements GameScene {
     const top = box.y + SPACE.md;
     const mid = box.y + box.h * 0.62;
 
-    // ── Left: the sweep tracker ─────────────────────────────────────────────
+    // ── Left: the sweep tracker, BOTH HALVES OF THE ORDER ───────────────────
+    //
+    // ONE LABEL over two readouts, and the label is `hudFood` ("ORDER") rather
+    // than `hudRakhi` ("RAKHIS"). Two micro labels in a 224-unit column would
+    // each get ~100 units and neither would be a word at 12 units — and the
+    // combined label is the TRUER one anyway: what the gate weighs is the whole
+    // order, which is exactly what `doorLocked` and `gateOpenToast` call it.
+    // The player learns one noun in the HUD, on the shutter and in the toast.
     const trackX = box.x + SPACE.lg;
-    label(ctx, t(COPY.hudRakhi).toUpperCase(), trackX, top, {
+    label(ctx, t(COPY.hudFood).toUpperCase(), trackX, top, {
       size: TEXT.micro,
       color: COLORS.hudLabel,
       track: TRACK.micro,
     });
-    const pipR = 11;
     for (let i = 0; i < s.rakhiTotal; i++) {
       // The punch is a SCALE on pickup, not a colour change: the colour already
       // carries "collected", and a second signal on the same channel is noise.
       const p = this.punch[i] ?? 0;
-      const grow = 1 + (p / MOTION.pipPunchSec) * 0.55;
-      iconPip(ctx, trackX + pipR + i * (pipR * 2 + SPACE.sm), mid, pipR * grow, s.rakhiTaken[i] === true);
+      const grow = 1 + (p / MOTION.pipPunchSec) * (PUNCH_MAX - 1);
+      iconPip(ctx, trackX + PIP_R + i * (PIP_R * 2 + SPACE.sm), mid, PIP_R * grow, s.rakhiTaken[i] === true);
+    }
+
+    // ── The dishes: one glyph and a numeral, beside the pips ─────────────────
+    //
+    // A NUMERAL RATHER THAN A SECOND PIP STRIP. Two strips of dots in one
+    // eyeline is how the count the gate depends on becomes unreadable, and a
+    // level can carry four dishes to three collectibles — eight dots across a
+    // column this wide would be a bar chart, not a counter. The glyph is the
+    // takeaway BAG (art/food.ts): the one mark in the set that is not a dish,
+    // which is what makes it read as a total rather than as a sixth item.
+    if (s.foodTotal > 0) {
+      const iconX = trackX + s.rakhiTotal * (PIP_R * 2 + SPACE.sm) + COUNTER_GAP + FOOD_ICON / 2;
+      const fp = this.punch[this.foodSlot] ?? 0;
+      const grow = 1 + (fp / MOTION.pipPunchSec) * (PUNCH_MAX - 1);
+      ctx.save();
+      // The punch is a TRANSFORM around a glyph baked once at its peak size —
+      // see PUNCH_MAX on why a size driven by a timer must not reach `bake`.
+      ctx.translate(iconX, mid);
+      ctx.scale(grow, grow);
+      drawFoodIconArt(ctx, 0, 0, this.px * PUNCH_MAX, FOOD_ICON);
+      ctx.restore();
+      label(
+        ctx,
+        `${s.foodCount}/${s.foodTotal}`,
+        iconX + FOOD_ICON / 2 + SPACE.xs,
+        mid,
+        {
+          size: TEXT.label,
+          weight: WEIGHT.display,
+          color: COLORS.hudValue,
+          track: TRACK.display,
+        },
+      );
     }
 
     // ── Centre: the delivery clock ──────────────────────────────────────────

@@ -114,6 +114,27 @@ export const colors = {
     furDark: '#54402F',
   },
 
+  /**
+   * THE MENU. Five dishes, each with a silhouette the art can make unmistakable
+   * and a palette that survives an orange ground.
+   *
+   * Note what is absent: gold. See the note on BrandColors.foods — the rakhi
+   * owns gold in this game because rakhis are what open the door, and a food
+   * item that reads as a rakhi breaks the counter the player must trust.
+   */
+  foods: [
+    // Biryani — saffron rice in a dark bowl, a coriander fleck.
+    { body: '#F6D98A', shade: '#C9A44C', accent: '#1BA672', outline: '#02060C' },
+    // Dosa — folded golden crepe, pale coconut chutney.
+    { body: '#E8B860', shade: '#B8842F', accent: '#FFF8E7', outline: '#02060C' },
+    // Samosa — fried triangle, pea-green filling.
+    { body: '#D9A24E', shade: '#A6741F', accent: '#7CA82B', outline: '#02060C' },
+    // Gulab jamun — syrup-dark spheres, a sugar sheen.
+    { body: '#8C4A22', shade: '#5E2E12', accent: '#FFE9C7', outline: '#02060C' },
+    // Masala chai — cream cup, terracotta band.
+    { body: '#FFF3E2', shade: '#D8C3A5', accent: '#C4562A', outline: '#02060C' },
+  ],
+
   accents: [
     '#FF5200',
     '#FFA700',
@@ -188,6 +209,10 @@ export const vocab = {
   goal: 'customer',
   collectible: 'rakhi',
   collectiblePl: 'rakhis',
+  /** Same order as colors.foods — the gate asserts the lengths match. */
+  foods: ['Biryani', 'Dosa', 'Samosa', 'Gulab Jamun', 'Chai'],
+  order: 'order',
+  items: 'items',
   hazard: 'tiffin drum',
   hazardPl: 'tiffin drums',
   powerup: 'masala shaker',

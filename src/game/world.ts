@@ -34,7 +34,7 @@
  * Node and measure difficulty before it ships.
  */
 
-import { AGENT, BARREL, BELT, CLIMB, PHYS, RAKHI } from '../config/tuning';
+import { AGENT, BARREL, BELT, CLIMB, HAZARD, PHYS, RAKHI } from '../config/tuning';
 import { emit } from '../core/events';
 import { makeRng, seedFor, type Rng } from '../core/rng';
 import {
@@ -63,7 +63,10 @@ import {
   resolveHazardContacts,
   shakerActive,
   stepHazards,
+  takeHelmet,
   takeShaker,
+  takeTurbo,
+  turboActive,
   type Hazards,
 } from './hazards';
 import { levelParams, type LevelParams } from './level';
@@ -78,6 +81,7 @@ import {
   scoreHop,
   scoreSmash,
   startRun,
+  takeFood,
   takeRakhi,
   tickClock,
   type Session,
@@ -91,6 +95,11 @@ import {
  * the player can always walk out of one. Giving the belt its own constant means
  * a later tune to runSpeed can cross it without anyone noticing, and a belt you
  * cannot escape is a level you cannot finish.
+ *
+ * THE TURBO CANNOT BREAK THIS, and it is worth stating why rather than trusting
+ * it. HAZARD.turboMult only ever RAISES the agent's effective run speed, so the
+ * margin between the belt and the player widens under the boost and can never
+ * invert. That is the entire reason no belt code anywhere is boost-aware.
  */
 const BELT_SPEED = CLIMB.speed;
 
@@ -108,7 +117,7 @@ export interface World {
   params: LevelParams;
   agent: Agent;
   barrels: Barrels;
-  /** Belts, lifts, tiffins, flames, scooters, shakers and pins. See game/hazards.ts. */
+  /** Belts, lifts, tiffins, flames, scooters and every pickup. See game/hazards.ts. */
   hazards: Hazards;
   /** The thrower. Owns the spawn cadence, the wind-up and level 10's shift. */
   monkey: Monkey;
@@ -194,6 +203,10 @@ export function step(w: World, intent: Intent, dt: number): void {
   const gateOpen = w.session.gateOpen;
 
   // ── 2. agent ───────────────────────────────────────────────────────────
+  // The boost is WRITTEN ONTO THE AGENT here rather than threaded through
+  // stepAgent's signature. One assignment, in the slot that owns the agent, and
+  // nothing downstream of it has to know the powerup exists — see Agent.speedMult.
+  w.agent.speedMult = turboActive(w.hazards) ? HAZARD.turboMult : 1;
   stepAgent(w.stage, w.agent, intent, BELT_SPEED, gateOpen, dt);
 
   if (w.agent.state === 'hit') {
@@ -206,11 +219,12 @@ export function step(w: World, intent: Intent, dt: number): void {
   stepBarrels(w.barrels, w.stage, w.rng, w.params.barrelLadderChance, BELT_SPEED, dt);
 
   // ── 4. hazards ─────────────────────────────────────────────────────────
-  // Belts, lift cars, flames, tiffins, scooters and the shaker clock, all in
+  // Belts, lift cars, flames, tiffins, scooters and the two powerup clocks, all in
   // game/hazards.ts and all AFTER the bodies that ride them have moved. The lift
   // pays one frame of surface lag for that ordering and it buys the guarantee
   // that nothing is ever moved by a hazard before it has taken its own step.
   const shakerBefore = w.hazards.shakerLeft;
+  const turboBefore = w.hazards.turboLeft;
   stepHazards(
     w.hazards,
     w.stage,
@@ -222,7 +236,11 @@ export function step(w: World, intent: Intent, dt: number): void {
     w.params.beltPeriodSec,
     dt,
   );
+  // Both expiries are compared HERE rather than asked of a helper in hazards.ts:
+  // the "before" value only exists in this scope, and a predicate that took it as
+  // an argument would be a function whose whole body is the comparison above it.
   if (shakerBefore > 0 && w.hazards.shakerLeft <= 0) emit({ type: 'ShakerExpired' });
+  if (turboBefore > 0 && w.hazards.turboLeft <= 0) emit({ type: 'TurboExpired' });
 
   // ── 5. pickups ─────────────────────────────────────────────────────────
   // BEFORE collisions, deliberately. A player who takes the last rakhi and is
@@ -319,16 +337,24 @@ function stepPickups(w: World): void {
 
     const chain = takeRakhi(w.session, i, w.agent.airborne);
     emit({ type: 'RakhiTaken', index: i, x: p.x, y: p.y, chain });
+    maybeOpenGate(w);
+  }
 
-    if (checkGate(w.session)) {
-      // The sweep finished in the lower half of the tower — the player planned a
-      // route instead of stumbling into the last pickup on their way to the top.
-      if (b.y > w.stage.h * 0.5) awardEarlySweep(w.session);
-      emit({ type: 'GateOpened' });
-      // The one moment in a level that stops time. Hit-stop first, then the
-      // hold; both are sim-side so a replay pauses in the same place.
-      w.hold = RAKHI.unlockHoldSec + RAKHI.unlockHitStopSec;
-    }
+  // THE ORDER, immediately after the rakhis and in the identical shape — same
+  // radius, same body-centre test, same gate check. Two required collectibles that
+  // were collected by two different-feeling rules would be one rule the player has
+  // to learn twice, and the second one they would learn by missing a pickup.
+  const foods = w.params.def.foods;
+  for (let i = 0; i < foods.length; i++) {
+    if (w.session.foodTaken[i]) continue;
+    const f = foods[i]!;
+    const dx = f.x - cx;
+    const dy = f.y - cy;
+    if (dx * dx + dy * dy > RAKHI.pickupR * RAKHI.pickupR) continue;
+
+    const chain = takeFood(w.session, i, w.agent.airborne);
+    emit({ type: 'FoodTaken', index: i, x: f.x, y: f.y, kind: f.kind, chain });
+    maybeOpenGate(w);
   }
 
   const shaker = takeShaker(w.hazards, b, w.params.def.shakerSec);
@@ -337,11 +363,43 @@ function stepPickups(w: World): void {
     emit({ type: 'ShakerTaken', x: s.x, y: s.y });
   }
 
+  const helmet = takeHelmet(w.hazards, b);
+  if (helmet >= 0) {
+    const p = w.hazards.helmets[helmet]!;
+    emit({ type: 'HelmetTaken', x: p.x, y: p.y });
+  }
+
+  const turbo = takeTurbo(w.hazards, b, w.params.def.turboSec);
+  if (turbo >= 0) {
+    const p = w.hazards.turbos[turbo]!;
+    emit({ type: 'TurboTaken', x: p.x, y: p.y });
+  }
+
   const pin = pushPin(w.hazards, b);
   if (pin >= 0) {
     const p = w.hazards.pins[pin]!;
     emit({ type: 'PinPushed', index: pin, x: p.x, y: p.y });
   }
+}
+
+/**
+ * The unlock beat, called from BOTH pickup loops.
+ *
+ * One function rather than the same six lines twice: the gate now has two
+ * conditions and either collectible can be the one that completes it, so the
+ * early-sweep award, the event and the hit-stop must be identical whichever it
+ * was. Duplicated, the version under the food loop is the one that would quietly
+ * lose the hold when somebody retuned the other.
+ */
+function maybeOpenGate(w: World): void {
+  if (!checkGate(w.session)) return;
+  // The sweep finished in the lower half of the tower — the player planned a
+  // route instead of stumbling into the last pickup on their way to the top.
+  if (w.agent.body.y > w.stage.h * 0.5) awardEarlySweep(w.session);
+  emit({ type: 'GateOpened' });
+  // The one moment in a level that stops time. Hit-stop first, then the hold;
+  // both are sim-side so a replay pauses in the same place.
+  w.hold = RAKHI.unlockHoldSec + RAKHI.unlockHitStopSec;
 }
 
 function stepJumpScoring(w: World): void {
@@ -352,6 +410,45 @@ function stepJumpScoring(w: World): void {
     w.agent.airCleared++;
     scoreHop(w.session, w.agent.airCleared);
   }
+}
+
+/**
+ * ═══ THE SINGLE INTERCEPTION POINT ═══════════════════════════════════════════
+ *
+ * A death is created in exactly two places in this file, and both of them used to
+ * run the same three lines: emit, hit, lose a life. The helmet has to sit in front
+ * of BOTH of them, and the way that goes wrong is obvious in advance — it is
+ * added to the barrel path first because that is where the bug report came from,
+ * and six weeks later a player reports that the helmet does nothing against
+ * flames. So the three lines became this function, and the two call sites became
+ * one line each.
+ *
+ * Returns true if the agent actually died. Both callers already guard on
+ * `invuln > 0`, so this is only ever reached by a hit that counts.
+ *
+ * On absorbing, `invuln` is set from AGENT.invulnSec — the same window a respawn
+ * gets. Without it the barrel that just broke the helmet is still overlapping the
+ * agent on the next step, and the "free hit" costs a life one frame later, which
+ * reads as the powerup not working at all.
+ *
+ * WHAT THIS FUNCTION DELIBERATELY DOES NOT COVER: the fell-out-of-the-world death
+ * in game/agent.ts, which calls `hitAgent` directly. See the comment there — the
+ * helmet must not save a fall with no floor under it.
+ */
+function agentStruck(w: World): boolean {
+  const body = w.agent.body;
+
+  if (w.hazards.helmetOn) {
+    w.hazards.helmetOn = false;
+    emit({ type: 'HelmetBroke', x: body.x, y: body.y });
+    w.agent.invuln = AGENT.invulnSec;
+    return false;
+  }
+
+  emit({ type: 'AgentHit', x: body.x, y: body.y });
+  hitAgent(w.agent);
+  loseLife(w.session);
+  return true;
 }
 
 /** Returns true if the agent died this step and the world should stop here. */
@@ -380,14 +477,10 @@ function stepBarrelCollisions(w: World): boolean {
   });
   if (!hit) return false;
 
-  emit({ type: 'AgentHit', x: body.x, y: body.y });
-  hitAgent(w.agent);
-  if (loseLife(w.session)) {
-    // Out of lives. The freeze still plays — the run ends on a beat rather than
-    // on a cut — and stepDeath closes the world once it expires.
-    return true;
-  }
-  return true;
+  // Out of lives is handled inside loseLife: the freeze still plays — the run ends
+  // on a beat rather than on a cut — and stepDeath closes the world once it
+  // expires. Returning false means the helmet ate it and the step continues.
+  return agentStruck(w);
 }
 
 /** The non-barrel half of stage 6. Returns true if the agent died this step. */
@@ -401,18 +494,23 @@ function stepHazardCollisions(w: World): boolean {
   });
   if (!died) return false;
 
-  emit({ type: 'AgentHit', x: body.x, y: body.y });
-  hitAgent(w.agent);
-  loseLife(w.session);
-  return true;
+  return agentStruck(w);
 }
 
 function stepDelivery(w: World): void {
   if (w.session.cleared || !w.session.gateOpen) return;
-  // ORDER PINS ARE A SECOND OBJECTIVE, NOT A SECOND GATE. The gated ladder still
-  // opens on the rakhi sweep alone — the player is never stopped halfway up by a
-  // condition they cannot see — and the pins are checked at the door, where the
-  // one thing still missing is legible and the walk back is short.
+  // ORDER PINS ARE A SECOND OBJECTIVE, NOT A SECOND GATE. The gated ladder opens
+  // on the SWEEP — rakhis and the customer's order, both counted in checkGate —
+  // and the pins are checked here at the door, where the one thing still missing
+  // is legible and the walk back is short.
+  //
+  // THE FOOD WENT ON THE LADDER AND THE PINS STAYED AT THE DOOR, and the
+  // difference is the direction of the walk back. A pin is always BELOW the door
+  // on a floor the route crossed on the way up, so a refusal here costs a short
+  // descent the player was going to be near anyway. A dish left behind, refused at
+  // the door, would cost a descent of the whole tower — see the checkGate header
+  // in game/session.ts and R7 in tools/validate-levels.ts, which budgets ZERO
+  // downward ladder traversals on levels 1–7.
   if (w.hazards.pinsLeft > 0) return;
 
   const target = w.params.def.customerAt;
@@ -426,7 +524,14 @@ function stepDelivery(w: World): void {
   if (dx * dx + dy * dy > RAKHI.pickupR * RAKHI.pickupR) return;
 
   deliverAgent(w.agent);
-  const perfect = w.session.deaths === 0 && w.session.rakhiCount === w.session.rakhiTotal;
+  // BOTH SWEEPS, not just the rakhis. The gate already requires both, so on today's
+  // levels this cannot differ — and that is exactly why it has to be written out:
+  // the day a level ships with an optional collectible, "perfect" must mean the
+  // player took everything, not everything the gate happened to insist on.
+  const perfect =
+    w.session.deaths === 0 &&
+    w.session.rakhiCount === w.session.rakhiTotal &&
+    w.session.foodCount === w.session.foodTotal;
   clearLevel(w.session, w.params, perfect);
   emit({ type: 'LevelCleared', timeLeft: w.session.timeLeft });
   w.done = true;

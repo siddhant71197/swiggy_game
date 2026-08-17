@@ -212,6 +212,41 @@ rule('U6', 'brand contract complete', (bad) => {
   }
 });
 
+// ─── U7 · The menu's two arrays stay in step ─────────────────────────────────
+
+rule('U7', 'food palette and names match', (bad) => {
+  for (const slug of brands) {
+    const b = readBrand(join(ROOT, 'brands', slug, 'brand.ts'));
+    // Count by probing indices rather than reading the arrays, because the
+    // reader flattens to dotted paths — `colors.foods[3].body`, not an array.
+    let palette = 0;
+    while (resolvePath(b.values, `colors.foods[${palette}].body`)) palette++;
+    let names = 0;
+    while (resolvePath(b.values, `vocab.foods[${names}]`)) names++;
+
+    if (palette === 0) {
+      bad(`brand "${slug}" declares no food palettes — colors.foods is required`, `brands/${slug}/brand.ts`);
+      continue;
+    }
+    if (palette !== names) {
+      bad(
+        `brand "${slug}" has ${palette} food palette(s) but ${names} name(s) — a dish with no name ` +
+          `renders as a blank line on the receipt, and a name with no palette renders as nothing at all`,
+        `brands/${slug}/brand.ts`,
+      );
+    }
+    // Every palette needs all four roles; a missing `outline` is the one that
+    // matters, since it is what keeps warm food legible on an orange tower.
+    for (let i = 0; i < palette; i++) {
+      for (const role of ['body', 'shade', 'accent', 'outline']) {
+        if (!resolvePath(b.values, `colors.foods[${i}].${role}`)) {
+          bad(`brand "${slug}" food ${i} is missing \`${role}\``, `brands/${slug}/brand.ts`);
+        }
+      }
+    }
+  }
+});
+
 // ─── R15 · Declared aspect ratios match the real artwork ────────────────────
 
 /** Real pixel size of a PNG or the viewBox of an SVG. Header read only. */

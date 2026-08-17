@@ -31,6 +31,31 @@ export const VOCAB = brand.vocab;
 export const BRAND_COPY = brand.copy;
 export const LOGO = brand.logo;
 
+/**
+ * THE MENU — palettes and names, passed through from the brand.
+ *
+ * Exported here rather than as Theme tokens, and that is deliberate. `Theme` is
+ * flat strings by construction: the per-brand override map in theme.ts assigns
+ * strings into it by key, so a nested array field would be assignable to by a
+ * typo with nothing to complain. A dish's colours are also read as a SET, so
+ * they stay a set rather than being flattened into `food0Body`, `food0Shade`, …
+ */
+export const FOOD_PALETTE = brand.colors.foods;
+export const FOOD_NAMES = brand.vocab.foods;
+
+/**
+ * Wraps, so a level's `kind` index can never be out of range.
+ *
+ * A level authored against a brand with five dishes must not crash on a brand
+ * that ships three — it should serve dish 0 again. An out-of-range index here
+ * would be a level-data error surfacing as an undefined-colour render, which is
+ * a blank sprite and a very cold trail back to the cause.
+ */
+export function foodKind(kind: number): number {
+  const n = FOOD_PALETTE.length;
+  return ((kind % n) + n) % n;
+}
+
 export { withAlpha, mix } from './theme';
 export type { Theme } from './theme';
 

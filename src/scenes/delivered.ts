@@ -31,8 +31,9 @@
  * "perfect" from a score threshold is a results screen that eventually disagrees
  * with the game about what the player just did, and the player believes the game.
  * The ONE thing computed here is the clean sweep, and only because it is not a
- * judgement: it is `rakhis === rakhisTotal`, which is the two numbers already on
- * the receipt, said once more with a name.
+ * judgement: it is `rakhis + food === rakhisTotal + foodTotal` — the numbers
+ * already printed on the receipt, said once more with a name. Both halves,
+ * because the door needed both; see the note beside the rows.
  *
  * Like every scene here it NAVIGATES NOTHING: `onNext` and `onHome`, and main.ts
  * decides what the next level is.
@@ -68,9 +69,18 @@ import type { GameScene, SceneId } from './director';
 export interface DeliveredPayload {
   level: number;
   score: number;
-  /** Collected / required, for the receipt's first row. */
+  /**
+   * Collected / required, BROKEN OUT BY KIND under the headline row.
+   *
+   * Both halves are carried rather than only their sum, because "Items delivered
+   * 3/4" over a locked door the player never opened tells them nothing about
+   * which half they missed — and the receipt is where a player works out what to
+   * do differently on the retry. The headline adds them; these two name them.
+   */
   rakhis: number;
   rakhisTotal: number;
+  food: number;
+  foodTotal: number;
   barrelsJumped: number;
   /** Whole seconds left on the delivery clock. */
   timeLeft: number;
@@ -99,6 +109,8 @@ export interface DeliveredPayload {
     levels: number;
     /** Collectibles taken across the run. */
     rakhis: number;
+    /** Food items taken across the run. */
+    food: number;
     /** Longest streak of levels cleared without losing a try. */
     streak: number;
     /** How many of them were perfect. */
@@ -143,6 +155,8 @@ export class DeliveredScene implements GameScene {
     score: 0,
     rakhis: 0,
     rakhisTotal: 0,
+    food: 0,
+    foodTotal: 0,
     barrelsJumped: 0,
     timeLeft: 0,
     perfect: false,
@@ -177,6 +191,8 @@ export class DeliveredScene implements GameScene {
       score: 0,
       rakhis: 0,
       rakhisTotal: 0,
+      food: 0,
+      foodTotal: 0,
       barrelsJumped: 0,
       timeLeft: 0,
       perfect: false,
@@ -257,16 +273,32 @@ export class DeliveredScene implements GameScene {
       tone: 'secondary',
     });
 
+    // ── THE ORDER, AS A HEADLINE AND ITS TWO PARTS ──────────────────────────
+    //
+    // "Items delivered 3/3" is the line that matches what the game asked for:
+    // the gate weighs the collectibles and the dishes together, so the receipt
+    // has to total them the same way or the player is reading a different job
+    // from the one they just did. The two rows under it are the itemisation —
+    // which is what a receipt is, and it costs nothing here because `rowH`
+    // absorbs extra rows down to a 36-unit floor (see below).
+    const items = d.rakhis + d.food;
+    const itemsTotal = d.rakhisTotal + d.foodTotal;
     const rows: [string, string, boolean][] = [
+      [COPY.receiptItems, `${items}/${itemsTotal}`, false],
       [tSentence(COPY.receiptRakhis), `${d.rakhis}/${d.rakhisTotal}`, false],
+      [tSentence(COPY.receiptFood), `${d.food}/${d.foodTotal}`, false],
       [COPY.receiptBarrels, String(d.barrelsJumped), false],
       [COPY.receiptOnTime, formatSeconds(d.timeLeft), false],
       [COPY.receiptClear, String(d.level), false],
     ];
     // The two bonuses. `perfect` is the sim's verdict; the sweep is arithmetic
-    // on two numbers already printed above it — see the header.
+    // on numbers already printed above it — see the header.
     if (d.perfect) rows.push([COPY.receiptPerfect, '', true]);
-    if (d.rakhisTotal > 0 && d.rakhis >= d.rakhisTotal) {
+    // BOTH sweeps, because the door needed both. A "clean sweep" awarded for the
+    // collectibles alone would print on a receipt that says 3/4 items two rows
+    // above it — a bonus contradicting its own evidence, which costs the whole
+    // receipt its credibility and not just that line.
+    if (itemsTotal > 0 && items >= itemsTotal) {
       rows.push([COPY.receiptSweep, '', true]);
     }
 
@@ -401,7 +433,15 @@ export class DeliveredScene implements GameScene {
 
     const rows: [string, string][] = [
       [COPY.completeLevels, String(totals?.levels ?? d.level)],
-      [tSentence(COPY.completeRakhis), String(totals?.rakhis ?? d.rakhis)],
+      // ITEMS, not just collectibles — the run delivered both halves of every
+      // order, and reporting only the rakhis would under-count the player's
+      // whole game. Swapped in place rather than added as a fifth row: this
+      // panel uses a FIXED rowH, unlike the per-level receipt whose rows are
+      // clamped, so a fifth row would overrun it.
+      [
+        COPY.receiptItems,
+        String((totals?.rakhis ?? d.rakhis) + (totals?.food ?? d.food)),
+      ],
       [COPY.completeStreak, String(totals?.streak ?? 0)],
       [COPY.completePerfect, String(totals?.perfect ?? (d.perfect ? 1 : 0))],
     ];

@@ -469,6 +469,62 @@ export function iconStar(
   ctx.restore();
 }
 
+/**
+ * THE ORDER AS A ONE-COLOUR GLYPH — the takeaway bag, in a caller's colour.
+ *
+ * `drawFoodIconArt` is the same bag and is the right call on any pale surface;
+ * this exists for the DARK ones. That drawing is a silhouette in `hudValue` with
+ * its cuff knocked out in `hudCard`, which on the shutter's near-black slats is
+ * an invisible bag with a pale scratch across it — the first version of the
+ * shutter counter shipped exactly that, and the dish half of the line simply was
+ * not there. Here the cuff is a GAP rather than a second colour, so the glyph
+ * works on any ground the caller can name a legible colour for.
+ *
+ * `w` is the width of the bag's base. The handle adds ~20% above it.
+ */
+export function iconOrderBag(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  w: number,
+  color: string,
+): void {
+  // Authored against the 17-unit base of art/food.ts's HUD glyph so the two read
+  // as one mark at two sizes rather than as two different bags.
+  const k = w / 17;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(k, k);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.arc(0, -6.4, 3.6, Math.PI, Math.PI * 2);
+  ctx.stroke();
+
+  // The cuff, then the body, with the ground showing between them.
+  ctx.beginPath();
+  ctx.moveTo(-7, -6);
+  ctx.lineTo(7, -6);
+  ctx.lineTo(7.2, -4.2);
+  ctx.lineTo(-7.2, -4.2);
+  ctx.closePath();
+  ctx.fill();
+
+  // The taper outward at the base is what tells a paper bag from a box.
+  ctx.beginPath();
+  ctx.moveTo(-7.3, -2.4);
+  ctx.lineTo(7.3, -2.4);
+  ctx.lineTo(8.4, 9.5);
+  ctx.lineTo(-8.4, 9.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 /** A tracker pip — the rakhi counter's unit. Filled or empty, same silhouette. */
 export function iconPip(
   ctx: CanvasRenderingContext2D,

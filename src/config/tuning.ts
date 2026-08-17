@@ -254,6 +254,36 @@ export const HAZARD = {
   pinR: 20,
   /** Telegraph on the shaker running out, so the last second is a warning. */
   shakerWarnSec: 1.5,
+
+  /** Pickup radii for the two rider powerups. Same generosity as the shaker. */
+  helmetR: 22,
+  turboR: 22,
+  /**
+   * THE BOOST, AND WHY IT IS 1.45 AND NOT 2.
+   *
+   * 1.45 × runSpeed is 217 against level 10's 195-unit barrels: fast enough that
+   * a boosted rider can finally outrun the fastest barrel in the game, which is
+   * the whole promise of the pickup. Doubling it instead would put the agent at
+   * 300, and at 300 a single frame carries him five units — past CLIMB.grabX — so
+   * ladder alignment becomes a twitch problem rather than a walk-and-press. A
+   * powerup that makes the tower harder to CLIMB is a powerup players learn to
+   * avoid.
+   *
+   * Two benign knock-ons, both deliberate:
+   *
+   *   BELT_SPEED (world.ts) must stay strictly under the effective run speed so a
+   *   conveyor is always escapable. Turbo only ever RAISES the run speed, so it
+   *   widens that margin and can never invert it — which is why the belt needs no
+   *   boost-aware branch anywhere.
+   *
+   *   tools/validate-levels.ts derives its jump reach from the BASE runSpeed, so
+   *   a boosted player clears the authored gaps with more margin than R5 asserts.
+   *   The rule is therefore permissive under turbo rather than wrong: it fails a
+   *   gap the unboosted player cannot cross, which is the player it must protect.
+   */
+  turboMult: 1.45,
+  /** Telegraph on the boost running out. Matches the shaker's, for one rule. */
+  turboWarnSec: 1.5,
 } as const;
 
 export const LIFT = {

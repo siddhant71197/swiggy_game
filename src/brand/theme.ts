@@ -158,6 +158,8 @@ export interface Theme {
   chuteMouth: string;
   shakerBody: string;
   shakerCap: string;
+  powerupGo: string;
+  powerupGuard: string;
 
   // The agent
   agentShirt: string;
@@ -416,6 +418,23 @@ export function buildTheme(b: BrandModule): Theme {
      */
     shakerBody: c.paper,
     shakerCap: k.body,
+
+    /**
+     * "GO" — the turbo's chevrons and speed trail.
+     *
+     * Its own token rather than borrowing `timerFill`, which is what the first
+     * pass did. Both are the brand's positive green today, and that is exactly
+     * the trap: `timerFill` is derived FOR THE DELIVERY CLOCK, so a brand that
+     * retinted its timer would silently restyle a power-up pickup, and nobody
+     * would connect the two. Same mistake, same shape, as the hazard lanes
+     * borrowing `ladderBrokenCap`.
+     *
+     * It must not be the primary: flames are the only pure-orange MOVING object
+     * on the field by design, so an orange speed flare would read as fire.
+     */
+    powerupGo: c.positive,
+    /** The helmet's protective read — deliberately not a hazard colour. */
+    powerupGuard: c.informative,
 
     // ── The agent ───────────────────────────────────────────────────────────
     //

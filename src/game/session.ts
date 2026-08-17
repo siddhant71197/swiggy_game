@@ -6,8 +6,8 @@
  * THE FAILURE THIS FILE PREVENTS: LOSING THE SWEEP ON DEATH.
  *
  * This is the single most important anti-quit decision in the game, so it is
- * stated first and it is one line of code: `rakhiTaken` is reset when a LEVEL
- * starts and never when a LIFE starts.
+ * stated first and it is two lines of code: `rakhiTaken` and `foodTaken` are
+ * reset when a LEVEL starts and never when a LIFE starts.
  *
  * The reasoning, because it will look like a bug to whoever reads it next.
  * The level's goal is "collect all N, then the gate opens". Combine that with
@@ -20,10 +20,19 @@
  * bonus below. The progress it does NOT cost is the one that would make the
  * player replay content instead of attempting content.
  *
- * The chain is where the pressure went instead. Consecutive rakhis IN ONE LIFE
+ * The chain is where the pressure went instead. Consecutive pickups IN ONE LIFE
  * escalate; dying resets the chain to zero but keeps the pickups. So a death is
  * expensive in score — which is what the leaderboard is for — and cheap in time,
  * which is what continuing to play is for.
+ *
+ * ─── ONE ORDER, ONE CHAIN ──────────────────────────────────────────────────
+ *
+ * The level's objective is TWO collectibles — the rakhis and the dishes of the
+ * order — and they share a single `chain` counter rather than running one each.
+ * Two chains would mean the best-scoring route is the one that groups pickups by
+ * TYPE, which is a spreadsheet decision made from a level map rather than a
+ * routing decision made under barrels; one chain means the best route is simply
+ * "sweep the tower without dying", which is the thing the game is about.
  *
  * ─── ON THE STREAK MULTIPLIER ──────────────────────────────────────────────
  *
@@ -47,6 +56,8 @@ export interface RunSummary {
   deaths: number;
   rakhis: number;
   rakhiTotal: number;
+  foods: number;
+  foodTotal: number;
   cleared: boolean;
 }
 
@@ -68,6 +79,16 @@ export interface Session {
   rakhiCount: number;
   rakhiTotal: number;
 
+  /**
+   * One flag per dish in the level's order. RESET ON LEVEL START ONLY, for the
+   * identical reason `rakhiTaken` is — an order half-collected on the fourth
+   * floor is work the player has already proved they can do, and asking for it
+   * again is the moment they close the tab.
+   */
+  foodTaken: boolean[];
+  foodCount: number;
+  foodTotal: number;
+
   /** Consecutive pickups in the CURRENT life. Reset by death, not by level. */
   chain: number;
   /** Levels cleared back to back without dying. Indexes SCORE.streak. */
@@ -84,6 +105,7 @@ export interface Session {
 
 export function makeSession(params: LevelParams, lives: number, score: number, streak: number): Session {
   const total = params.def.rakhis.length;
+  const foods = params.def.foods.length;
   return {
     level: params.level,
     lives,
@@ -93,9 +115,14 @@ export function makeSession(params: LevelParams, lives: number, score: number, s
     rakhiTaken: new Array<boolean>(total).fill(false),
     rakhiCount: 0,
     rakhiTotal: total,
+    foodTaken: new Array<boolean>(foods).fill(false),
+    foodCount: 0,
+    foodTotal: foods,
     chain: 0,
     streak,
-    gateOpen: total === 0,
+    // Open from the start only if there is NOTHING to sweep. Both objectives are
+    // counted, so a level with food and no rakhis still gates.
+    gateOpen: total === 0 && foods === 0,
     earlySweepAwarded: false,
     cleared: false,
     failed: false,
@@ -149,10 +176,54 @@ export function takeRakhi(s: Session, index: number, inAir: boolean): number {
   return s.chain;
 }
 
-/** True on the step the last rakhi lands — the caller emits `GateOpened`. */
+/**
+ * Score a dish of the order. Returns the chain length AFTER this pickup, exactly
+ * as `takeRakhi` does — the two share the counter, see the header.
+ *
+ * Priced off the SAME table as a rakhi, deliberately. Two prices would make the
+ * optimal route the one that collects the expensive collectible first, which is a
+ * decision the player makes by reading a number rather than by reading the
+ * barrels, and it is the same decision on every level forever.
+ */
+export function takeFood(s: Session, index: number, inAir: boolean): number {
+  if (index < 0 || index >= s.foodTotal) return s.chain;
+  if (s.foodTaken[index]) return s.chain;
+
+  s.foodTaken[index] = true;
+  s.foodCount++;
+  s.chain++;
+
+  const bonus = Math.min((s.chain - 1) * SCORE.rakhiChainStep, SCORE.rakhiChainCap);
+  const base = SCORE.rakhi + bonus;
+  s.score += inAir ? base * SCORE.rakhiAirMult : base;
+
+  return s.chain;
+}
+
+/**
+ * True on the step the sweep completes — the caller emits `GateOpened`.
+ *
+ * TWO clauses, ONE gate, and the gate stays on the LADDER rather than moving to
+ * the door the way the order pins did. That asymmetry is the whole reason food is
+ * allowed to be required at all.
+ *
+ * If food gated the DOOR, a player could climb the entire tower with one dish
+ * outstanding, be refused at the top, and have to descend to fetch it. Every
+ * ladder they came up is now a ladder they go down through barrels they have
+ * already passed — which is rework rather than difficulty, is the single
+ * worst-feeling failure this genre has, and is precisely what R7 in
+ * tools/validate-levels.ts budgets at ZERO downward traversals on levels 1–7.
+ * Gating the ladder instead means the refusal happens at the FOOT of the climb,
+ * where the player has not yet spent anything and the thing they are missing is
+ * still below them.
+ *
+ * The pins can sit at the door because they are not a gate: they are checked
+ * there, with a short walk back, and nothing above them is ever needed.
+ */
 export function checkGate(s: Session): boolean {
   if (s.gateOpen) return false;
   if (s.rakhiCount < s.rakhiTotal) return false;
+  if (s.foodCount < s.foodTotal) return false;
   s.gateOpen = true;
   return true;
 }
@@ -188,7 +259,8 @@ export function awardEarlySweep(s: Session): boolean {
 /**
  * A life is lost. Returns true if that was the last one.
  *
- * Note what this function does NOT touch: `rakhiTaken`. See the header.
+ * Note what this function does NOT touch: `rakhiTaken` or `foodTaken`. See the
+ * header.
  */
 export function loseLife(s: Session): boolean {
   s.lives--;
@@ -232,6 +304,8 @@ export function summarise(s: Session): RunSummary {
     deaths: s.deaths,
     rakhis: s.rakhiCount,
     rakhiTotal: s.rakhiTotal,
+    foods: s.foodCount,
+    foodTotal: s.foodTotal,
     cleared: s.cleared,
   };
 }

@@ -5,14 +5,21 @@
  *
  * THE FAILURE THIS FILE PREVENTS: THE UNWINNABLE LEVEL, FOUND BY A PLAYER.
  *
- * Every level in this game gates its exit on a full sweep of the rakhis. That
- * single rule has one catastrophic failure mode and it is invisible in every
- * screenshot, every code review and every playtest that happens to go well: put
- * ONE rakhi behind the gated ladder and the level cannot be finished, because
- * the gate needs the rakhi and the rakhi needs the gate. The author does not see
- * it — they placed it while thinking about the barrel lanes. The reviewer does
- * not see it — the diff is four numbers. The tester does not see it unless they
- * happen to be the one who leaves that rakhi for last.
+ * Every level in this game gates its exit on a full sweep of TWO required
+ * collectibles — the rakhis and the customer's order. That single rule has one
+ * catastrophic failure mode and it is invisible in every screenshot, every code
+ * review and every playtest that happens to go well: put ONE of them behind the
+ * gated ladder and the level cannot be finished, because the gate needs the
+ * pickup and the pickup needs the gate. The author does not see it — they placed
+ * it while thinking about the barrel lanes. The reviewer does not see it — the
+ * diff is four numbers. The tester does not see it unless they happen to be the
+ * one who leaves that item for last.
+ *
+ * The order DOUBLED the size of that surface: there are now roughly twice as many
+ * required pickups per level as there were rakhis, so R3 below treats a dish with
+ * exactly the strictness it treats a rakhi. Order pins get the weaker check
+ * because they gate the DOOR rather than the ladder; food gates the ladder, so it
+ * gets the strict one.
  *
  * A player sees it. On level 8, ninety seconds in, with three lives spent.
  *
@@ -168,9 +175,16 @@ interface BuiltGraph {
   graph: Graph;
   start: number;
   customer: number;
-  /** One node per required objective — rakhis, then pins. */
+  /** One node per required objective — rakhis, then food, then pins. */
   targets: number[];
-  rakhiNodes: number[];
+  /**
+   * The LADDER-GATED objectives, kept separate from `targets` because R3 asks a
+   * stricter question of them: a rakhi or a dish behind the gate is unwinnable,
+   * whereas a pin behind the gate is merely a walk back down.
+   */
+  gateNodes: number[];
+  /** Labels parallel to `gateNodes`, so a failure names the item the author typed. */
+  gateLabels: string[];
 }
 
 function buildGraph(stage: Stage, def: StageDef, level: number): BuiltGraph {
@@ -259,7 +273,8 @@ function buildGraph(stage: Stage, def: StageDef, level: number): BuiltGraph {
   if (cGid < 0) fail(level, 'R1 door', `customerAt is not on a girder surface`);
   const customer = b.node(cGid < 0 ? 0 : cGid, def.customerAt.x, 'door', stage);
 
-  const rakhiNodes: number[] = [];
+  const gateNodes: number[] = [];
+  const gateLabels: string[] = [];
   for (let i = 0; i < def.rakhis.length; i++) {
     const p = def.rakhis[i]!;
     const gid = rakhiGirder(stage, p.x, p.y);
@@ -272,10 +287,30 @@ function buildGraph(stage: Stage, def: StageDef, level: number): BuiltGraph {
       );
       continue;
     }
-    rakhiNodes.push(b.node(gid, p.x, `rakhi${i}`, stage));
+    gateNodes.push(b.node(gid, p.x, `rakhi${i}`, stage));
+    gateLabels.push(`rakhi ${i}`);
   }
 
-  const targets = rakhiNodes.slice();
+  // THE ORDER JOINS THE RAKHIS, not the pins. Same list, same rules, because the
+  // sim's gate counts them together — see checkGate in src/game/session.ts.
+  for (let i = 0; i < def.foods.length; i++) {
+    const p = def.foods[i]!;
+    const gid = rakhiGirder(stage, p.x, p.y);
+    if (gid < 0) {
+      fail(
+        level,
+        'R2 food',
+        `food ${i} (kind ${p.kind}) at (${p.x.toFixed(0)}, ${p.y.toFixed(0)}) is not within 24 ` +
+          `units above any girder surface and is not inside a lift's column — nothing can stand ` +
+          `under it`,
+      );
+      continue;
+    }
+    gateNodes.push(b.node(gid, p.x, `food${i}`, stage));
+    gateLabels.push(`food ${i}`);
+  }
+
+  const targets = gateNodes.slice();
   // Pins are a REQUIRED objective on the levels that carry them (the door
   // refuses the delivery until every one is pushed), so the route ratio has to
   // include them or it measures a route the player is not allowed to take.
@@ -303,7 +338,7 @@ function buildGraph(stage: Stage, def: StageDef, level: number): BuiltGraph {
     }
   }
 
-  return { graph: { nodes: b.nodes, adj: b.adj }, start, customer, targets, rakhiNodes };
+  return { graph: { nodes: b.nodes, adj: b.adj }, start, customer, targets, gateNodes, gateLabels };
 }
 
 /**
@@ -399,10 +434,24 @@ function downsAlong(g: Graph, p: Paths, from: number, to: number): number {
 /**
  * Shortest tour from `start`, through every target, ending at `customer`.
  *
- * Held-Karp over the targets. Ten objectives is 2^10 × 10 × 10, which is
- * instant, and the exact answer matters: a greedy nearest-neighbour tour would
- * report a route ratio that is worse than the one the player can actually find,
- * and the rule would then fail levels that are fine.
+ * Held-Karp over the targets, and EXACT on purpose: a greedy nearest-neighbour
+ * tour would report a route ratio worse than the one the player can actually
+ * find, and R6 would then fail levels that are fine.
+ *
+ * ─── WHERE THE REAL CEILING IS ─────────────────────────────────────────────
+ *
+ * Level 10 is the biggest objective set in the game and it is now ELEVEN targets
+ * — three rakhis, a four-dish order and four pins — up from ten before the order
+ * existed. 2^11 × 11² is a quarter of a million inner steps and still runs inside
+ * a few milliseconds, so the growth from adding food cost nothing measurable.
+ *
+ * The cost is 2^m · m² time and 2^m · m memory, which means the honest ceiling is
+ * not "ten": it is around TWENTY targets, where the table is a million rows and
+ * the run takes a couple of seconds — still fine on a build machine. Past roughly
+ * twenty-four the allocation alone is gigabytes and this function stops being
+ * viable, at which point the answer is to drop to a held-out heuristic with a
+ * proven bound rather than to loosen R6. Nothing in the design wants a level with
+ * two dozen required pickups, so that ceiling is a note rather than a plan.
  */
 function bestTour(
   g: Graph,
@@ -472,27 +521,33 @@ function bestTour(
 
 function validate(def: StageDef, level: number): void {
   const stage = buildStage(def);
-  const { graph, start, customer, targets, rakhiNodes } = buildGraph(stage, def, level);
+  const { graph, start, customer, targets, gateNodes, gateLabels } = buildGraph(stage, def, level);
 
   const open = dijkstra(graph, start, true);
   const shut = dijkstra(graph, start, false);
 
-  // ── R3 · No objective may hide behind the gate ──────────────────────────
-  // Without this a level ships in which the gate needs the rakhi and the rakhi
+  // ── R3 · No GATE objective may hide behind the gate ─────────────────────
+  // Without this a level ships in which the gate needs the pickup and the pickup
   // needs the gate. See the header — this is the whole reason the file exists.
-  for (let i = 0; i < rakhiNodes.length; i++) {
-    const nd = rakhiNodes[i]!;
+  //
+  // Every rakhi AND every dish of the order is checked here, at full strength,
+  // because both are counted by checkGate. Food does NOT get the pin's weaker
+  // treatment further down: a pin behind the gate costs the player a walk back
+  // down, a dish behind the gate costs them the level.
+  for (let i = 0; i < gateNodes.length; i++) {
+    const nd = gateNodes[i]!;
+    const what = gateLabels[i]!;
     if (!Number.isFinite(open.dist[nd]!)) {
-      fail(level, 'R3 gate', `rakhi ${i} is unreachable even with the gate open`);
+      fail(level, 'R3 gate', `${what} is unreachable even with the gate open`);
       continue;
     }
     if (!Number.isFinite(shut.dist[nd]!)) {
       fail(
         level,
         'R3 gate',
-        `rakhi ${i} at (${graph.nodes[nd]!.x.toFixed(0)}, ${graph.nodes[nd]!.y.toFixed(0)}) is ` +
-          `reachable ONLY through the gated ladder — the gate needs the rakhi and the rakhi ` +
-          `needs the gate, so this level cannot be finished`,
+        `${what} at (${graph.nodes[nd]!.x.toFixed(0)}, ${graph.nodes[nd]!.y.toFixed(0)}) is ` +
+          `reachable ONLY through the gated ladder — the gate needs it and it needs the gate, ` +
+          `so this level cannot be finished`,
       );
     }
   }
@@ -519,18 +574,19 @@ function validate(def: StageDef, level: number): void {
   }
 
   // ── R10 · Nothing is placed past the door ───────────────────────────────
+  // Walks `gateNodes`, so it covers the order as well as the rakhis. Written
+  // against the node list rather than against `def.rakhis` for exactly that
+  // reason: a rule spelled in terms of one table is a rule that silently stops
+  // covering the game the moment a second table of required pickups exists.
   const doorGid = graph.nodes[customer]!.gid;
-  for (let i = 0; i < def.rakhis.length; i++) {
-    const nd = rakhiNodes[i];
-    if (nd === undefined) continue;
-    if (graph.nodes[nd]!.gid === doorGid) {
-      fail(
-        level,
-        'R10 past the door',
-        `rakhi ${i} sits on the delivery platform — a collectible past the goal is one the ` +
-          `player can only take by refusing to finish`,
-      );
-    }
+  for (let i = 0; i < gateNodes.length; i++) {
+    if (graph.nodes[gateNodes[i]!]!.gid !== doorGid) continue;
+    fail(
+      level,
+      'R10 past the door',
+      `${gateLabels[i]!} sits on the delivery platform — a collectible past the goal is one the ` +
+        `player can only take by refusing to finish`,
+    );
   }
 
   // ── R6 · Route ratio, and R7 · the downward budget ──────────────────────
@@ -580,12 +636,18 @@ function validate(def: StageDef, level: number): void {
   }
 
   // ── R9 · A free collectible on the archetypes that can offer one ────────
-  // On a belt or lift level at least one rakhi must cost ZERO seconds: taken off
-  // a moving car, or carried into by a conveyor. Those are what make "collect
-  // them all" read as generous rather than as a tax on the clock.
+  // On a belt or lift level at least one REQUIRED pickup must cost ZERO seconds:
+  // taken off a moving car, or carried into by a conveyor. Those are what make
+  // "collect them all" read as generous rather than as a tax on the clock.
+  //
+  // Rakhis AND food satisfy it, because the player does not experience two
+  // objectives — they experience one sweep, and it is the sweep that has to feel
+  // generous. Levels 5 and 8 now hand the free one to the ORDER (the F4 dish in
+  // car A's column) rather than to a rakhi, and a rule spelled against
+  // `def.rakhis` alone would have failed both of them for getting easier.
   if (def.kind === 'kitchen' || def.kind === 'lifts') {
     let free = false;
-    for (const p of def.rakhis) {
+    for (const p of [...def.rakhis, ...def.foods]) {
       const gid = rakhiGirder(stage, p.x, p.y);
       if (gid >= 0 && stage.girders[gid]!.belt !== 0) free = true;
       for (const lf of def.lifts ?? []) {
@@ -598,8 +660,8 @@ function validate(def: StageDef, level: number): void {
       fail(
         level,
         'R9 free pickup',
-        `a ${def.kind} level with no rakhi on a belt or in a lift column — every pickup on this ` +
-          `level costs the player seconds, which turns the sweep into a tax`,
+        `a ${def.kind} level with no rakhi and no dish on a belt or in a lift column — every ` +
+          `pickup on this level costs the player seconds, which turns the sweep into a tax`,
       );
     }
   }

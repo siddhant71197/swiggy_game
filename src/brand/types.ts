@@ -212,6 +212,32 @@ export interface BrandColors {
   };
 
   /**
+   * THE ORDER — one palette per dish the courier can be asked to deliver.
+   *
+   * BRAND content, not game content, and that is the whole reason it lives here:
+   * Swiggy delivers biryani and dosa, and the next brand delivers something
+   * else. Putting the menu in the GAME would mean a grocery re-skin shipping a
+   * tower full of curry.
+   *
+   * DELIBERATELY NOT GOLD-FORWARD, and this is a constraint rather than a
+   * preference. The rakhi is the gold object in this game, and rakhis are what
+   * unlock the door — so a required food item that reads as a rakhi at 22 units
+   * corrupts the one counter the player has to be able to trust. Greens,
+   * browns, creams and a syrup-dark do the work instead.
+   *
+   * `accent` is the single distinguishing mark — a garnish, a filling, a rim.
+   * `outline` is load-bearing for the same reason the collectible's is: the
+   * tower is orange, and warm food on a warm ground disappears without a
+   * keyline. Any length ≥ 1; a level's `kind` index wraps.
+   */
+  readonly foods: readonly {
+    readonly body: string;
+    readonly shade: string;
+    readonly accent: string;
+    readonly outline: string;
+  }[];
+
+  /**
    * Decorative tints for stage skins. Any length ≥ 1; the derivation cycles
    * through them, so a brand with three still works.
    */
@@ -317,6 +343,16 @@ export interface BrandVocabulary {
   readonly goal: string;
   readonly collectible: string;
   readonly collectiblePl: string;
+  /**
+   * The dishes, in the SAME ORDER as `colors.foods`. The build gate asserts the
+   * two arrays are the same length — a brand that adds a sixth dish and forgets
+   * to name it would otherwise ship a blank line on the receipt.
+   */
+  readonly foods: readonly string[];
+  /** What a full set of them is called. 'order'. */
+  readonly order: string;
+  /** Rakhis and food together, as the player is asked to think of them. 'items'. */
+  readonly items: string;
   readonly hazard: string;
   readonly hazardPl: string;
   readonly powerup: string;

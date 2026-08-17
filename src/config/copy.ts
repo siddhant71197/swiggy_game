@@ -40,7 +40,20 @@ import { VOCAB } from '../brand';
 export function t(template: string, extra?: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => {
     if (extra && key in extra) return String(extra[key]);
-    if (key in VOCAB) return VOCAB[key as keyof typeof VOCAB];
+    if (key in VOCAB) {
+      const v = VOCAB[key as keyof typeof VOCAB];
+      // `vocab.foods` is a LIST, and a list has no sensible rendering in the
+      // middle of a sentence. Joining it would silently produce "Collect every
+      // Biryani,Dosa,Samosa" — grammatical nonsense that no type error catches
+      // and that reads as a data bug to whoever sees it on screen. A template
+      // that wants one dish indexes the list and passes it through `extra`.
+      if (typeof v !== 'string') {
+        throw new Error(
+          `copy: {${key}} is a list, not a word — index it and pass it via the extra map`,
+        );
+      }
+      return v;
+    }
     throw new Error(`copy: unknown token {${key}}`);
   });
 }
@@ -119,10 +132,17 @@ export const COPY = {
   hudScore: 'SCORE',
   hudRakhi: '{collectiblePl}',
 
+  // ── HUD, second counter ─────────────────────────────────────────────────
+  hudFood: '{order}',
+
   // ── The gate ────────────────────────────────────────────────────────────
-  doorLocked: '{collectiblePl} pehle, doorbell baad mein',
+  //
+  // The gate now needs BOTH collectibles, so these talk about `{items}` rather
+  // than naming one of them. doorLocked/doorUnlocked were dead strings until
+  // now — the shutter had no label at all — and this is what they were for.
+  doorLocked: 'Poora {order} pehle, doorbell baad mein',
   doorUnlocked: 'Doorbell bajao!',
-  gateOpenToast: 'All {collectiblePl} collected — top floor open!',
+  gateOpenToast: 'Full {order} — top floor open!',
 
   // ── Splash ──────────────────────────────────────────────────────────────
   play: 'PLAY',
@@ -168,7 +188,16 @@ export const COPY = {
 
   // ── Delivered ───────────────────────────────────────────────────────────
   deliveredTitle: 'DELIVERED',
+  /**
+   * The headline row on the receipt: everything that reached the customer.
+   *
+   * A literal rather than a vocab template, because it is true under every
+   * brand — whatever the collectibles are, they are the items that got
+   * delivered. The two rows beneath it name the specifics.
+   */
+  receiptItems: 'Items delivered',
   receiptRakhis: '{collectiblePl}',
+  receiptFood: '{order}',
   receiptBarrels: 'Barrels jumped',
   receiptOnTime: 'On time',
   receiptClear: 'Level clear',
@@ -185,7 +214,7 @@ export const COPY = {
   skipBtn: 'SKIP THIS ONE',
 
   // ── Game complete ───────────────────────────────────────────────────────
-  completeTitle: 'SAARE {collectiblePl} DELIVERED',
+  completeTitle: 'SAARE {items} DELIVERED',
   completeLevels: 'Levels',
   completeRakhis: '{collectiblePl}',
   completeStreak: 'Best streak',
@@ -197,6 +226,14 @@ export const COPY = {
   // ── Toasts ──────────────────────────────────────────────────────────────
   toastAirCatch: 'HAWA MEIN CATCH!',
   toastEarlySweep: 'SAB LE LIYA',
+  /**
+   * The helmet absorbing a hit. Popped over the agent on the frame he would
+   * otherwise have died.
+   *
+   * It names nothing — not the helmet, not the collectible — because the beat is
+   * about the player, and "BACH GAYE" is true whatever the guard happened to be.
+   */
+  toastHelmetSave: 'BACH GAYE!',
   toastDoubleHop: 'DOUBLE!',
   toastTripleHop: 'TRIPLE!',
 } as const;

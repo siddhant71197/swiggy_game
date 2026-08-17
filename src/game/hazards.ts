@@ -142,6 +142,26 @@ export interface Hazards {
 
   pins: Pickup[];
   pinsLeft: number;
+
+  helmets: Pickup[];
+  /**
+   * A FLAG, NOT A TIMER, and that is the design rather than a shortcut.
+   *
+   * The shaker is a window: its value is "for the next six seconds nothing can
+   * touch you", so it needs a clock and a telegraph. The helmet is a CHARGE: its
+   * value is "the next hit is free", and it is spent by an event rather than by
+   * time. Giving it a duration would make the player's question "how long have I
+   * had this?" — unanswerable while dodging — instead of "do I have it?", which is
+   * one glance at the HUD. So there is no clock here and no warn state, and the
+   * absence of both is what keeps the two powerups distinguishable.
+   */
+  helmetOn: boolean;
+
+  turbos: Pickup[];
+  /** Seconds of boost left. Zero is "not held". Mirrors `shakerLeft` exactly. */
+  turboLeft: number;
+  /** True during the last HAZARD.turboWarnSec. Presentation reads it. */
+  turboWarn: boolean;
 }
 
 // ─── Build ──────────────────────────────────────────────────────────────────
@@ -257,6 +277,21 @@ export function makeHazards(stage: Stage, def: StageDef, flameCountDelta: number
   const pins: Pickup[] = [];
   for (const p of def.pins ?? []) pins.push({ x: p.x, y: p.y, taken: false });
 
+  // Both riders' kit follows the shaker's rule: the COUNT is authoritative and
+  // the positions are a table it indexes into, so a level can carry a spare
+  // placement — a tuning pass in progress — without it going live by accident.
+  const helmets: Pickup[] = [];
+  const helmetDefs = def.helmets ?? [];
+  for (let i = 0; i < Math.min(def.helmetCount, helmetDefs.length); i++) {
+    helmets.push({ x: helmetDefs[i]!.x, y: helmetDefs[i]!.y, taken: false });
+  }
+
+  const turbos: Pickup[] = [];
+  const turboDefs = def.turbos ?? [];
+  for (let i = 0; i < Math.min(def.turboCount, turboDefs.length); i++) {
+    turbos.push({ x: turboDefs[i]!.x, y: turboDefs[i]!.y, taken: false });
+  }
+
   return {
     beltDir: 1,
     beltWarn: false,
@@ -273,6 +308,11 @@ export function makeHazards(stage: Stage, def: StageDef, flameCountDelta: number
     smashChain: 0,
     pins,
     pinsLeft: pins.length,
+    helmets,
+    helmetOn: false,
+    turbos,
+    turboLeft: 0,
+    turboWarn: false,
   };
 }
 
@@ -306,6 +346,7 @@ export function stepHazards(
   stepScooterSources(h, dt);
   stepScooters(h, stage, dt);
   stepShakerClock(h, dt);
+  stepTurboClock(h, dt);
 }
 
 /**
@@ -657,6 +698,22 @@ export function shakerActive(h: Hazards): boolean {
   return h.shakerLeft > 0;
 }
 
+// ─── The turbo ──────────────────────────────────────────────────────────────
+
+/** The shaker's clock, to the letter. Two powerups, one countdown shape. */
+function stepTurboClock(h: Hazards, dt: number): void {
+  if (h.turboLeft <= 0) return;
+  h.turboLeft -= dt;
+  h.turboWarn = h.turboLeft <= HAZARD.turboWarnSec;
+  if (h.turboLeft > 0) return;
+  h.turboLeft = 0;
+  h.turboWarn = false;
+}
+
+export function turboActive(h: Hazards): boolean {
+  return h.turboLeft > 0;
+}
+
 // ─── Pickups ────────────────────────────────────────────────────────────────
 
 function grabbed(px: number, py: number, r: number, agent: Body): boolean {
@@ -666,9 +723,11 @@ function grabbed(px: number, py: number, r: number, agent: Body): boolean {
 }
 
 /**
- * Shakers first, then pins. Returns the index taken, or -1 — one per step, so
- * two overlapping pickups produce two events on two steps rather than a single
- * frame the presentation layer has to unpick.
+ * Returns the index taken, or -1 — ONE PER STEP, and every taker in this file
+ * keeps that rule. Two overlapping pickups therefore produce two events on two
+ * steps rather than one frame the presentation layer has to unpick, and the order
+ * they are offered in is world.ts's stage-5 sequence rather than a hidden
+ * precedence in here.
  */
 export function takeShaker(h: Hazards, agent: Body, durationSec: number): number {
   for (let i = 0; i < h.shakers.length; i++) {
@@ -682,6 +741,41 @@ export function takeShaker(h: Hazards, agent: Body, durationSec: number): number
     h.shakerLeft = durationSec;
     h.shakerWarn = false;
     h.smashChain = 0;
+    return i;
+  }
+  return -1;
+}
+
+/**
+ * Index of the helmet donned this step, or -1.
+ *
+ * A second helmet taken while one is already on is CONSUMED and does not stack,
+ * for the shaker's reason pointed at a charge instead of a window: two banked hits
+ * would let a player hoard the finale's safety net and spend it all on one floor,
+ * and "how many helmets am I wearing" is a number the HUD would then have to
+ * teach. One charge is a promise the player can hold in their head.
+ */
+export function takeHelmet(h: Hazards, agent: Body): number {
+  for (let i = 0; i < h.helmets.length; i++) {
+    const p = h.helmets[i]!;
+    if (p.taken) continue;
+    if (!grabbed(p.x, p.y, HAZARD.helmetR, agent)) continue;
+    p.taken = true;
+    h.helmetOn = true;
+    return i;
+  }
+  return -1;
+}
+
+/** Index of the turbo taken this step, or -1. REFRESHED, not stacked — see takeShaker. */
+export function takeTurbo(h: Hazards, agent: Body, durationSec: number): number {
+  for (let i = 0; i < h.turbos.length; i++) {
+    const p = h.turbos[i]!;
+    if (p.taken) continue;
+    if (!grabbed(p.x, p.y, HAZARD.turboR, agent)) continue;
+    p.taken = true;
+    h.turboLeft = durationSec;
+    h.turboWarn = false;
     return i;
   }
   return -1;
