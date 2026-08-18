@@ -30,6 +30,8 @@ export const BRAND_AD = brand.ad;
 export const VOCAB = brand.vocab;
 export const BRAND_COPY = brand.copy;
 export const LOGO = brand.logo;
+/** Undefined when the brand declares no property — see BrandAnalytics. */
+export const ANALYTICS = brand.analytics;
 
 /**
  * THE MENU — palettes and names, passed through from the brand.

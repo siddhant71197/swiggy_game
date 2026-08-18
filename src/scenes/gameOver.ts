@@ -48,8 +48,10 @@ import {
   label,
 } from '../render/ui';
 import { fillRound } from '../render/shapes';
+import { openBrandCta } from '../ui/cta';
 import { drawEmblem, drawMarkCentered, markHeight } from '../render/mark';
 import type { Viewport } from '../render/canvas';
+import { track } from '../ui/analytics';
 import type { GameScene, SceneId } from './director';
 
 export interface GameOverPayload {
@@ -345,7 +347,10 @@ export class GameOverScene implements GameScene {
 /** New tab, never this one. A tap here must not destroy the session. */
 function openBrand(): void {
   try {
-    window.open(IDENTITY.href, '_blank', 'noopener,noreferrer');
+    // Deeplink into the app, falling back to the web when the scheme is not
+    // handled — see src/ui/cta.ts. Called synchronously from the handler so
+    // the user activation is still live.
+    openBrandCta('game_over');
   } catch {
     /* Popup blocked, or an embedder that forbids it. Nothing to recover. */
   }
@@ -357,11 +362,18 @@ function openBrand(): void {
  */
 async function shareScore(score: number): Promise<boolean> {
   const text = `${BRAND_COPY.shareText} ${score}`;
-  const url = IDENTITY.href;
+  // THE WEB URL, never IDENTITY.href. A share lands in somebody else's
+  // messages — a person who may not have the app, on a device that has never
+  // heard of the scheme. A `swiggy://` link pasted into a chat is a dead
+  // string, and this is the one surface that reaches a NEW person.
+  const url = IDENTITY.webHref;
 
-  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+  // GA4's recommended `share`. `method` separates the OS sheet from the
+  // clipboard fallback — they are very different signals of intent.
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     try {
       await navigator.share({ title: IDENTITY.fullTitle, text, url });
+      track('share', { method: 'os_sheet', screen: 'game_over' });
       return true;
     } catch {
       // AbortError — the player dismissed the sheet. That is a choice, not a

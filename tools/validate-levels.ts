@@ -625,6 +625,68 @@ function validate(def: StageDef, level: number): void {
     }
   }
 
+  // ── R11 · The rakhi is the first collectible on the route ───────────────
+  //
+  // Every level is authored with exactly ONE rakhi and it is meant to be the
+  // first thing the player picks up: the item the HUD names, handed over before
+  // the level starts arguing. That is a claim about GEOMETRY, and geometry is
+  // exactly the kind of claim that quietly stops being true — nudge a dish
+  // twelve units down the sweep line, or move a ladder, and the rakhi is
+  // suddenly second with nothing anywhere reporting it. The author does not see
+  // it (the diff is one number), the reviewer does not see it, and the level
+  // still looks right. So it is measured.
+  //
+  // MEASURED AGAINST THE SAME OPTIMAL TOUR R6 USES, not a second route: the
+  // Held-Karp order above already IS the shortest sweep through every objective,
+  // so asking "what does that tour collect first" costs nothing and cannot
+  // disagree with the ratio the level was budgeted by.
+  //
+  // Two deliberate narrowings, both of which would otherwise make this rule lie:
+  //
+  //   PINS ARE SKIPPED. They are pushed, not collected — level 10's route steps
+  //   over a pin on the ground floor before it reaches anything at all, and a
+  //   rule that counted it would fail a level for a switch the player flips in
+  //   passing. Only the ladder-gated objectives (rakhis and dishes) count.
+  //
+  //   THE COMPARISON IS PER NODE, not per item. Two pickups authored onto the
+  //   same graph node are the same stop on the route, and one of them being the
+  //   rakhi is enough — a dish sharing the rakhi's spot is not "reached first",
+  //   it is reached at the same instant.
+  const gateSet = new Map<number, string[]>();
+  for (let i = 0; i < gateNodes.length; i++) {
+    const list = gateSet.get(gateNodes[i]!);
+    if (list) list.push(gateLabels[i]!);
+    else gateSet.set(gateNodes[i]!, [gateLabels[i]!]);
+  }
+  const firstStop = tour.order.find((nd) => gateSet.has(nd));
+  if (def.rakhis.length === 0) {
+    fail(
+      level,
+      'R11 rakhi first',
+      `the level authors no rakhi at all — the objective the HUD names does not exist, and the ` +
+        `gate is satisfied by the order alone`,
+    );
+  } else if (firstStop === undefined) {
+    fail(
+      level,
+      'R11 rakhi first',
+      `the sweep tour reaches none of this level's collectibles — the route the ratio is ` +
+        `measured on does not visit the objectives it is supposed to gate`,
+    );
+  } else if (!gateSet.get(firstStop)!.some((l) => l.startsWith('rakhi'))) {
+    const nd = graph.nodes[firstStop]!;
+    fail(
+      level,
+      'R11 rakhi first',
+      `the first collectible on the sweep is ${gateSet.get(firstStop)!.join(' / ')} at ` +
+        `(${nd.x.toFixed(0)}, ${nd.y.toFixed(0)}), not the rakhi — the player meets the order ` +
+        `before the item the level is named for, so the opening pickup no longer teaches what ` +
+        `the gate wants`,
+    );
+  } else {
+    notes.push(`L${level}: first on the sweep is ${gateSet.get(firstStop)!.join(' / ')}.`);
+  }
+
   // ── R8 · The barrel-speed ceiling ───────────────────────────────────────
   if (def.barrelSpeed >= SPEED_CEILING) {
     fail(
@@ -682,7 +744,7 @@ for (const n of notes) console.log(`  note  ${n}`);
 console.log('');
 
 if (failures.length === 0) {
-  console.log(`[levels] ${LEVELS.length} levels, 10 rules — clean`);
+  console.log(`[levels] ${LEVELS.length} levels, 11 rules — clean`);
   console.log('═══════════════════════════════════════════════════════════════════');
   console.log('');
   process.exit(0);

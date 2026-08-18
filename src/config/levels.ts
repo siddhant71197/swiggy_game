@@ -685,9 +685,9 @@ const LEVEL_3: StageDef = (() => {
     // level's new mechanic is the thing that hands it over.
     rakhis: [onLine(1, 300)],
     foods: [
-      { ...onLine(2, 250), kind: 0 },
-      { ...onLine(3, 280), kind: 1 },
-      { ...onLine(4, 300), kind: 2 },
+      { ...onLine(2, 250), kind: 4 },
+      { ...onLine(3, 280), kind: 5 },
+      { ...onLine(4, 300), kind: 6 },
     ],
 
     agentStart: onFloor(0, 80),
@@ -730,9 +730,9 @@ const LEVEL_4: StageDef = (() => {
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 3.2, jitterSec: 0.5, wildChance: 0 }],
     rakhis: [onLine(1, 260)],
     foods: [
-      { ...onLine(2, 270), kind: 3 },
-      { ...onLine(3, 240), kind: 4 },
-      { ...onLine(4, 280), kind: 0 },
+      { ...onLine(2, 270), kind: 0 },
+      { ...onLine(3, 240), kind: 1 },
+      { ...onLine(4, 280), kind: 2 },
     ],
 
     // Two flames and the answer to them, on the same level and in that order:
@@ -781,11 +781,19 @@ const LEVEL_5: StageDef = (() => {
     // read as generous rather than as a tax on the clock, and it is now the ORDER
     // that gets the gift rather than the rakhis, because the order is the bigger
     // half of the sweep from here on.
-    rakhis: [onLine(1, 280), onLine(2, 290)],
+    //
+    // ONE RAKHI, AND IT IS THE FIRST THING ON THE ROUTE. The F1 position is the
+    // pickup the sweep reaches first — the F2 position that used to carry the
+    // second rakhi is now a dish, on the exact same coordinates, so the route the
+    // timer was balanced against is unchanged and only the TYPE at that spot moved.
+    // R11 in tools/validate-levels.ts fails the build if a dish ever ends up ahead
+    // of the rakhi, which is the sort of thing a two-unit nudge does silently.
+    rakhis: [onLine(1, 280)],
     foods: [
-      { ...onLine(3, 300), kind: 1 },
-      { ...onLine(4, 436), kind: 2 },
-      { ...onLine(5, 250), kind: 3 },
+      { ...onLine(2, 290), kind: 3 },
+      { ...onLine(3, 300), kind: 4 },
+      { ...onLine(4, 436), kind: 5 },
+      { ...onLine(5, 250), kind: 6 },
     ],
 
     // THE FIRST HELMET IN THE GAME, on F2, one floor BELOW the F3 traverse that
@@ -846,7 +854,7 @@ const LEVEL_6: StageDef = (() => {
     ladders: t.ladders,
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.6, jitterSec: 0.5, wildChance: 0 }],
 
-    // FIVE PICKUPS, ONE CHAIN — two rakhis and a three-dish order, all on the
+    // FIVE PICKUPS, ONE CHAIN — one rakhi and a four-dish order, all on the
     // line, one per floor from F1 to F5. This is the payday: the chain is shared
     // across both collectibles (see game/session.ts), so a clean sweep here banks
     // a five-long chain, and the chain cap is what the score screen is made of.
@@ -854,8 +862,9 @@ const LEVEL_6: StageDef = (() => {
     // The old sixth pickup — a second one on F2 — is simply gone rather than
     // relocated. The totals across all ten levels stay flat against the 47 they
     // were tuned at, and a rest beat is the right place to spend the difference.
-    rakhis: [onLine(1, 300), onLine(2, 330)],
+    rakhis: [onLine(1, 300)],
     foods: [
+      { ...onLine(2, 330), kind: 0 },
       { ...onLine(3, 280), kind: 1 },
       { ...onLine(4, 300), kind: 2 },
       { ...onLine(5, 210), kind: 3 },
@@ -895,17 +904,22 @@ const LEVEL_7: StageDef = (() => {
     girders: t.girders,
     ladders: t.ladders,
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.5, jitterSec: 0.45, wildChance: 0.12 }],
-    rakhis: [onLine(1, 260), onLine(3, 240)],
-    // FOUR DISHES, and the first one is on the GROUND FLOOR — on the walk from
-    // the start to the first ladder, before a single barrel has reached the
-    // player. The biggest order so far opens with the easiest item in the game,
-    // which is how a level that removes the beginner's crutch avoids also
-    // removing their footing.
+    // THE RAKHI TAKES THE GROUND-FLOOR POSITION, which is the one this level's
+    // route reaches first — on the walk from the start to the first ladder,
+    // before a single barrel has reached the player. The F1 and F3 positions that
+    // used to be rakhis are dishes now, on the same coordinates, so the sweep is
+    // the sweep the timer was tuned against. The level that removes the
+    // beginner's crutch still opens with the easiest pickup in the game; what
+    // changed is that the free one is the rakhi rather than a dish, so the item
+    // the player is told to look for is the item they meet first.
+    rakhis: [onLine(0, 220)],
+    // FIVE DISHES, the biggest order so far, one per floor from F1 up.
     foods: [
-      { ...onLine(0, 220), kind: 0 },
-      { ...onLine(2, 270), kind: 1 },
-      { ...onLine(4, 280), kind: 2 },
-      { ...onLine(5, 360), kind: 3 },
+      { ...onLine(1, 260), kind: 4 },
+      { ...onLine(2, 270), kind: 5 },
+      { ...onLine(3, 240), kind: 6 },
+      { ...onLine(4, 280), kind: 0 },
+      { ...onLine(5, 360), kind: 1 },
     ],
 
     // Fixed cadence, no jitter. See ScooterDef.
@@ -959,12 +973,16 @@ const LEVEL_8: StageDef = (() => {
     ladders: t.ladders,
     lifts: liftsD(),
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.4, jitterSec: 0.45, wildChance: 0.14 }],
-    rakhis: [onLine(1, 280), onLine(2, 290)],
+    // Same split as level 5, on the tower level 5 taught: the F1 position is
+    // first on the route and keeps the rakhi, the F2 position beside it becomes
+    // a dish. The F4 dish in car A's column is still the free one (see R9).
+    rakhis: [onLine(1, 280)],
     foods: [
-      { ...onLine(2, 200), kind: 0 },
-      { ...onLine(4, 270), kind: 1 },
-      { ...onLine(4, 436), kind: 2 },
-      { ...onLine(5, 250), kind: 3 },
+      { ...onLine(2, 200), kind: 2 },
+      { ...onLine(2, 290), kind: 3 },
+      { ...onLine(4, 270), kind: 4 },
+      { ...onLine(4, 436), kind: 5 },
+      { ...onLine(5, 250), kind: 6 },
     ],
     // NO SHAKER. Layout D's second visit is the level where the player is
     // expected to own the tower: they have already cleared it once, the route is
@@ -1026,15 +1044,18 @@ const LEVEL_9: StageDef = (() => {
       // is not difficulty, it is a stopped game.
       { x: 448, y: towerSurfaceY(3, 448), intervalSec: 6, jitterSec: 0.5, wildChance: 0 },
     ],
-    rakhis: [onLine(1, 300), onLine(3, 280)],
+    // The rakhi keeps F1 — the first pickup the route reaches, and the last
+    // floor before the cuts start. The F3 position is a dish now, unmoved.
+    rakhis: [onLine(1, 300)],
     // BOTH F2 AND F4 DISHES SIT ON THE FAR PIECE OF A CUT FLOOR — past the gap
     // the player arrives needing to cross anyway, never suspended over it. A
     // required collectible above a hole is a level that asks for a jump the
     // player must land twice: once to progress, once to not lose the item.
     foods: [
       { ...onLine(2, 300), kind: 0 },
-      { ...onLine(4, 340), kind: 1 },
-      { ...onLine(5, 340), kind: 2 },
+      { ...onLine(3, 280), kind: 1 },
+      { ...onLine(4, 340), kind: 2 },
+      { ...onLine(5, 340), kind: 3 },
     ],
 
     // ON THE CUT FLOORS, both of them, and NOWHERE ELSE. A flame on a split
@@ -1105,18 +1126,21 @@ const LEVEL_10: StageDef = (() => {
       { x: 468, yTop: towerSurfaceY(3, 468), yBottom: towerSurfaceY(1, 468), w: 30, speed: 50, phase: 0 },
     ],
     spawners: [{ x: 496, y: towerSurfaceY(5, 496), intervalSec: 2.2, jitterSec: 0.4, wildChance: 0.18 }],
-    // THREE RAKHIS AND A FOUR-DISH ORDER — the largest of both in the game, and
-    // still seven pickups against the six the finale was tuned with. One dish is
-    // on F0, which is the one floor the player crosses before the first barrel
-    // arrives: the biggest order in the game opens with a free item, because a
-    // finale should feel like a victory lap that gets harder, not like a tax
-    // levied at the front door.
-    rakhis: [onLine(1, 280), onLine(3, 280), onLine(5, 340)],
+    // ONE RAKHI AND A SIX-DISH ORDER — the largest order in the game, on the same
+    // seven positions the finale was tuned with. The rakhi takes the F0 position,
+    // which is the one the route reaches first: the one floor the player crosses
+    // before the first barrel arrives. The finale opens with a free item, because
+    // a finale should feel like a victory lap that gets harder, not like a tax
+    // levied at the front door — and the item it opens with is the rakhi, so the
+    // level's headline objective is in hand before anything is chasing you.
+    rakhis: [onLine(0, 320)],
     foods: [
-      { ...onLine(0, 320), kind: 0 },
-      { ...onLine(2, 200), kind: 1 },
-      { ...onLine(2, 270), kind: 2 },
-      { ...onLine(4, 280), kind: 3 },
+      { ...onLine(1, 280), kind: 4 },
+      { ...onLine(2, 200), kind: 5 },
+      { ...onLine(2, 270), kind: 6 },
+      { ...onLine(3, 280), kind: 0 },
+      { ...onLine(4, 280), kind: 1 },
+      { ...onLine(5, 340), kind: 2 },
     ],
 
     // THE ORDER PINS. Four, all on floors the route already crosses, and the
@@ -1155,7 +1179,7 @@ const LEVEL_10: StageDef = (() => {
     // the player exactly one hard floor and leaves the other five intact.
     //
     // The x is 330 rather than 300 for a reason that is not tuning: F3 already
-    // carries a pin at 240 and a rakhi at 280, and two pickups whose 22-unit radii
+    // carries a pin at 240 and a dish at 280, and two pickups whose 22-unit radii
     // overlap are two pickups the player cannot aim at separately. The duration is
     // NOT the dial here — dropping turboSec from 6 to 4 moved nothing measurable,
     // because what this powerup is worth on this level is decided by which floor

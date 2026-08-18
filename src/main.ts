@@ -22,6 +22,7 @@
 
 import { COLORS, SAVE_KEY } from './brand';
 import { GameLoop } from './core/loop';
+import { COPY } from './config/copy';
 import { levelCount } from './game/level';
 import { loadGame, saveGame } from './core/storage';
 import { Controls } from './input/controls';
@@ -36,6 +37,7 @@ import { RulesScene } from './scenes/rules';
 import { SplashScene } from './scenes/splash';
 import { initAdSlot, setAdVisible } from './ui/adSlot';
 import { cancelHaptics, setHapticsEnabled } from './ui/haptics';
+import { initAnalytics, track } from './ui/analytics';
 import { Sfx } from './ui/sfx';
 
 // The render-foundation harness. Dynamically imported behind the guard so a
@@ -125,6 +127,7 @@ async function boot(): Promise<void> {
   const splash: SplashScene = new SplashScene(vp, {
     onPlay: () => {
       if (nextUp() === 1) run = freshRun();
+      track('game_start', { level: nextUp(), returning: save.bestLevel > 0 });
       return save.seenRules ? startLevel(nextUp()) : director.go(rules);
     },
     onLevels: () =>
@@ -140,6 +143,8 @@ async function boot(): Promise<void> {
       const firstRun = !save.seenRules;
       save.seenRules = true;
       persist();
+      // GA4's own recommended name, so its reporting understands it natively.
+      track('tutorial_complete', { first_run: firstRun });
       if (firstRun) startLevel(nextUp());
       else director.go(splash, { best: save.highScore });
     },
@@ -181,6 +186,17 @@ async function boot(): Promise<void> {
       );
       save.highScore = Math.max(save.highScore, summary.score);
       persist();
+      track('level_end', {
+        level: summary.level,
+        level_name: COPY.levelNames[summary.level - 1] ?? String(summary.level),
+        success: true,
+        score: summary.score,
+        time_left: summary.timeLeft,
+        perfect: summary.perfect,
+      });
+      if (summary.level >= levelCount()) {
+        track('post_score', { score: run.score, level: summary.level, completed_run: true });
+      }
       director.go(delivered, {
         ...summary,
         // The last level ends the RUN, not just the round — the receipt becomes
@@ -199,6 +215,14 @@ async function boot(): Promise<void> {
     onGameOver: (level: number, score: number) => {
       save.highScore = Math.max(save.highScore, score);
       persist();
+      // The single most useful row in the whole report: WHICH level ends runs.
+      track('level_end', {
+        level,
+        level_name: COPY.levelNames[level - 1] ?? String(level),
+        success: false,
+        score,
+      });
+      track('post_score', { score, level, completed_run: false });
       director.go(gameOver, { score, best: save.highScore, level });
     },
     onQuit: () => director.go(splash, { best: save.highScore }),
@@ -226,7 +250,9 @@ async function boot(): Promise<void> {
     // already walking into the first barrel.
     controls.reset();
     cancelHaptics();
-    director.go(play, { level: Math.max(1, level) });
+    const n = Math.max(1, level);
+    track('level_start', { level: n, level_name: COPY.levelNames[n - 1] ?? String(n) });
+    director.go(play, { level: n });
   }
 
   controls.onPause = () => {
@@ -294,4 +320,9 @@ async function boot(): Promise<void> {
   }
   loop.start();
   document.getElementById('boot')?.classList.add('hidden');
+
+  // AFTER the loop is running and the boot overlay is gone, so the first paint
+  // never waits on a request to someone else's CDN. This game has zero runtime
+  // dependencies and boots fast; no measurement is worth giving that up.
+  requestAnimationFrame(() => initAnalytics());
 }

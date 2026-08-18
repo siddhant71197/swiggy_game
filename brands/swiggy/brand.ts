@@ -24,6 +24,7 @@
 
 import type {
   BrandAd,
+  BrandAnalytics,
   BrandColors,
   BrandCopy,
   BrandIdentity,
@@ -42,7 +43,11 @@ export const identity = {
   /** The current brand platform line, verbatim. */
   tagline: 'Scene hai toh Swiggy hai.',
   url: 'swiggy.com',
-  href: 'https://www.swiggy.com',
+  /** The app deeplink — the CTA's real target, straight to the restaurant list. */
+  href: 'swiggy://restaurantList',
+  /** The universal fallback: used for sharing, and when the scheme does not
+   *  resolve (desktop, or a device without the app). See BrandIdentity.webHref. */
+  webHref: 'https://www.swiggy.com',
 } satisfies BrandIdentity;
 
 export const colors = {
@@ -115,7 +120,7 @@ export const colors = {
   },
 
   /**
-   * THE MENU. Five dishes, each with a silhouette the art can make unmistakable
+   * THE MENU. Seven dishes, each with a silhouette the art can make unmistakable
    * and a palette that survives an orange ground.
    *
    * Note what is absent: gold. See the note on BrandColors.foods — the rakhi
@@ -123,16 +128,49 @@ export const colors = {
    * item that reads as a rakhi breaks the counter the player must trust.
    */
   foods: [
-    // Biryani — saffron rice in a dark bowl, a coriander fleck.
-    { body: '#F6D98A', shade: '#C9A44C', accent: '#1BA672', outline: '#02060C' },
-    // Dosa — folded golden crepe, pale coconut chutney.
-    { body: '#E8B860', shade: '#B8842F', accent: '#FFF8E7', outline: '#02060C' },
-    // Samosa — fried triangle, pea-green filling.
-    { body: '#D9A24E', shade: '#A6741F', accent: '#7CA82B', outline: '#02060C' },
-    // Gulab jamun — syrup-dark spheres, a sugar sheen.
+    // Gulab jamun — syrup-dark spheres, a sugar sheen. The darkest dish here,
+    // and the one that can never be mistaken for anything metallic.
     { body: '#8C4A22', shade: '#5E2E12', accent: '#FFE9C7', outline: '#02060C' },
-    // Masala chai — cream cup, terracotta band.
-    { body: '#FFF3E2', shade: '#D8C3A5', accent: '#C4562A', outline: '#02060C' },
+    // Pastry — pink frosting, cream layers (`shade`), a red glacé cherry. The
+    // cream is held in `shade` rather than `accent` because the cherry needs
+    // the accent slot: it is the one mark that names this slice.
+    { body: '#F49CB8', shade: '#FFF3E3', accent: '#E0293F', outline: '#02060C' },
+    // Motichoor laddu — SAFFRON-ORANGE, and deliberately not marigold-yellow.
+    // This is the one dish in the set that shares the rakhi's shape family, so
+    // its hue is pushed warm and RED-ward (~30°), a long way from the reward
+    // palette's #D4AF37 / #F4C430 (~44°): a gold-yellow ball would be a rakhi
+    // with the threads cut off. `shade` is the boondi shadow the granular
+    // texture is stippled in — granularity is what tells this from a smooth
+    // medallion at speed. `accent` is a COOL pale paper case, the one cold
+    // value in the drawing, which is what stops the ball dissolving into the
+    // Swiggy-orange girder it sits on.
+    { body: '#E4761B', shade: '#9E430A', accent: '#E6E9F3', outline: '#02060C' },
+    // Ice cream — pink scoop, a cool paper tub (`shade`) that keeps it clear of
+    // the warm creams, and a tan wafer.
+    { body: '#F7C6D3', shade: '#E4E8F0', accent: '#B87A3E', outline: '#02060C' },
+    // Rasmalai — milk-white discs, a saffron pool (`shade`), pistachio flecks.
+    // The saffron is pushed orange-ward and away from any yellow-metal read.
+    { body: '#FFF8EC', shade: '#EE9330', accent: '#5FA02F', outline: '#02060C' },
+    // Chocolate pastry — a choux log: a warm tan body, a dark chocolate glaze
+    // in `shade`, a cream line in `accent`. The body is deliberately LIGHTER
+    // than the gulab jamun's #8C4A22, because the gulab jamun owns "the dark
+    // one" in this set and a second dark brown object would take that read
+    // away from it. The chocolate is confined to the glaze, where it is a
+    // stripe rather than a silhouette.
+    { body: '#CE9159', shade: '#3E2416', accent: '#FFF4E2', outline: '#02060C' },
+    // Burger — the one savoury item, and the only one whose four roles have to
+    // carry FIVE visible parts. `body` is the BUN, pale and toasted, and it is
+    // kept lighter and less red than the choux log's #CE9159 because those two
+    // are the closest pair in the set by silhouette family (both horizontal,
+    // both dark on top) and must not also be the closest pair by hue. `shade`
+    // is the CHEESE, a cheddar amber that also does the bun's toasting at low
+    // alpha; it is pushed ORANGE-ward (~31°) rather than yellow, because a
+    // yellow-gold slab in a food is the rakhi's colour and this file's one job
+    // is never to draw that. `accent` is LETTUCE — the only cold-ish hue in the
+    // drawing, and the mark that says "savoury" before the silhouette resolves.
+    // The PATTY has no slot of its own: it is mixed from `shade` toward
+    // `outline` in the art, which is why no fifth token is needed here.
+    { body: '#EEB878', shade: '#E08A22', accent: '#6FBF3C', outline: '#02060C' },
   ],
 
   accents: [
@@ -210,7 +248,15 @@ export const vocab = {
   collectible: 'rakhi',
   collectiblePl: 'rakhis',
   /** Same order as colors.foods — the gate asserts the lengths match. */
-  foods: ['Biryani', 'Dosa', 'Samosa', 'Gulab Jamun', 'Chai'],
+  foods: [
+    'Gulab Jamun',
+    'Pastry',
+    'Motichoor Laddu',
+    'Ice Cream',
+    'Rasmalai',
+    'Chocolate Pastry',
+    'Burger',
+  ],
   order: 'order',
   items: 'items',
   hazard: 'tiffin drum',
@@ -327,6 +373,19 @@ export const logo = {
    */
   knockout: true,
 } satisfies BrandLogo;
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ *  ANALYTICS — this brand's own GA4 property.
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Here rather than in index.html so a second brand gets its own property by
+ * copying a directory, and so a brand with no property simply omits this key
+ * and loads no third-party script at all. src/ui/analytics.ts reads it.
+ */
+export const analytics = {
+  measurementId: 'G-XJLK9LRW86',
+} satisfies BrandAnalytics;
 
 /**
  * NO OVERRIDES, which is the outcome to aim for.

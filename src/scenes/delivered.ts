@@ -64,6 +64,7 @@ import { drawCustomerArt } from '../render/art/customer';
 import { drawMonkeyArt } from '../render/art/monkey';
 import { drawRakhiArt } from '../render/art/rakhi';
 import type { Viewport } from '../render/canvas';
+import { track } from '../ui/analytics';
 import type { GameScene, SceneId } from './director';
 
 export interface DeliveredPayload {
@@ -667,11 +668,18 @@ function formatSeconds(sec: number): string {
  */
 async function shareRun(d: DeliveredPayload): Promise<boolean> {
   const text = `${BRAND_COPY.shareText} ${d.totals?.score ?? d.score}`;
-  const url = IDENTITY.href;
+  // THE WEB URL, never IDENTITY.href. A share lands in somebody else's
+  // messages — a person who may not have the app, on a device that has never
+  // heard of the scheme. A `swiggy://` link pasted into a chat is a dead
+  // string, and this is the one surface that reaches a NEW person.
+  const url = IDENTITY.webHref;
 
-  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+  // GA4's recommended `share`. `method` separates the OS sheet from the
+  // clipboard fallback — they are very different signals of intent.
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     try {
       await navigator.share({ title: IDENTITY.fullTitle, text, url });
+      track('share', { method: 'os_sheet', screen: 'delivered' });
       return true;
     } catch {
       return false;

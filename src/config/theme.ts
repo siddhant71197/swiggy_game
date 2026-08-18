@@ -132,7 +132,10 @@ export const AD = {
     headline: BRAND_AD.headline,
     subline: BRAND_AD.subline,
     cta: BRAND_AD.cta,
-    href: IDENTITY.href,
+    // The anchor's own href is the WEB url so the link degrades correctly:
+    // copyable, middle-clickable, and never a dead string on a device that
+    // does not know the scheme. adSlot.ts layers the deeplink on top of it.
+    href: IDENTITY.webHref,
     bg: COLORS.masthead,
     headlineColor: COLORS.mastheadText,
     sublineColor: withAlpha(COLORS.mastheadText, 0.82),

@@ -33,6 +33,7 @@
 import type { AssetRef } from '../brand/types';
 import type { Viewport } from '../render/canvas';
 import { AD, FONT_STACK_CSS, RADIUS, SPACE, WEIGHT } from '../config/theme';
+import { openBrandCta } from './cta';
 
 let root: HTMLElement | null = null;
 let creative: HTMLElement | null = null;
@@ -134,6 +135,23 @@ function buildHouseCreative(): HTMLElement {
    */
   a.target = '_blank';
   a.rel = 'noopener noreferrer';
+
+  /**
+   * PROGRESSIVE ENHANCEMENT ONTO A LINK THAT ALREADY WORKS.
+   *
+   * The href above is the web URL, so this banner is a real, valid, copyable
+   * link with no script at all. The handler then tries the app deeplink first
+   * and only falls through to that href when nothing handles the scheme.
+   *
+   * That ordering matters: making the href itself `swiggy://` would give a
+   * desktop reviewer a link that does nothing, shows a meaningless target in
+   * the status bar, and cannot be copied or opened in a new tab.
+   */
+  a.addEventListener('click', (ev) => {
+    if (ev.defaultPrevented || ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey) return;
+    ev.preventDefault();
+    openBrandCta('sticky_banner');
+  });
   a.style.cssText = [
     'display:flex',
     'align-items:center',

@@ -108,19 +108,63 @@ export const AGENT = {
 } as const;
 
 export const PHYS = {
-  gravity: 2400,
   /**
-   * Apex = jumpV² / (2·gravity) = 65.3 units. Airtime = 2·|jumpV| / gravity =
-   * 0.47s. Horizontal reach at full run = 70 units.
+   * ─── THE JUMP IS TUNED AS A PAIR, NEVER AS ONE NUMBER ─────────────────────
    *
-   * 65 is chosen against two numbers and sits between them: it must clear a
-   * 30-unit barrel comfortably, and it must NOT reach the next floor 106 units
-   * up. The second constraint is what makes ladders the only way up, which is
-   * what makes the level a route rather than a climbing wall.
+   *   Apex     = jumpV² / (2·gravity)  = 64.9 units
+   *   Airtime  = 2·|jumpV| / gravity   = 0.618s
+   *   Reach    = airtime · runSpeed    = 92.6 units
+   *   Time above a barrel's 30-unit crown = 0.453s
+   *
+   * These were 2400 / −560, giving a 0.467s airtime and 0.343s of clearance
+   * over a barrel — enough to be possible, not enough to feel fair. The brief
+   * was "longer in the air so it is easier to get over a barrel", and the hang
+   * time over the CROWN is the number that phrase actually means. It is up 32%.
+   *
+   * ─── WHY BOTH NUMBERS HAD TO MOVE ─────────────────────────────────────────
+   *
+   * THE OBVIOUS FIX IS WRONG. Lowering gravity alone lengthens the jump and
+   * RAISES THE APEX with it: at 1800 the apex is 87 units, which clears the
+   * 78-unit MINIMUM floor gap — so the player could jump between floors,
+   * ladders would stop mattering, and a level would stop being a route and
+   * become a climbing wall. The whole design rests on not being able to do that.
+   *
+   * So the apex is held and the airtime is stretched underneath it. Since
+   * apex = v²/2g and airtime = 2v/g, scaling v by k and g by k² leaves the apex
+   * untouched and multiplies airtime by 1/k. Here k ≈ 0.75: v 560 → 420,
+   * g 2400 → 1360, apex 65.3 → 64.9 — a difference no player can feel — and a
+   * third more air.
+   *
+   * Anyone re-tuning this must move BOTH or the apex moves with them. Check
+   * against the 78-unit MINIMUM floor gap documented in config/levels.ts, not
+   * the 106-unit nominal: the alternating ±1/12 slopes diverge across a span,
+   * and 78 is the worst case at the open ends.
+   *
+   * ─── THE AIR-CONTROL SIDE EFFECT IS DELIBERATE, NOT AN OVERSIGHT ──────────
+   *
+   * game/physics.ts computes mid-air acceleration as `gravity · airControl`,
+   * so air control is a FRACTION OF GRAVITY rather than an absolute. Dropping
+   * gravity therefore cut mid-air steering by 43% as a side effect: 1320 → 748
+   * units/s², and the time to reach full horizontal speed went 0.114s → 0.200s.
+   *
+   * That was measured and then KEPT. Committing harder to a jump is truer to
+   * the arcade original, and the longer airtime partly offsets the weaker
+   * steering. `airControl` stays 0.55 on purpose — raising it to ~0.9 would
+   * restore the old responsiveness, and that is the knob to reach for if the
+   * jump ever feels sluggish to redirect. It is not a bug to be fixed.
+   *
+   * ─── KNOCK-ON, BENIGN ─────────────────────────────────────────────────────
+   *
+   * Reach 70 → 92.6, so validate-levels.ts's gap budget (90% of reach, derived
+   * and never typed) rises 63 → 83 against gaps authored at ≤56. Every existing
+   * gap gets easier and none becomes newly impossible — but the rule is 32%
+   * looser, so a newly-authored gap between 63 and 83 would no longer be caught.
    */
-  jumpV: -560,
+  gravity: 1360,
+  jumpV: -420,
   runSpeed: 150,
-  /** Air control, as a fraction of ground acceleration. */
+  /** Air control, as a fraction of ground acceleration. See the note above —
+   *  0.55 against the lower gravity is a deliberate choice, not a leftover. */
   airControl: 0.55,
 
   /**

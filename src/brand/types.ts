@@ -108,8 +108,31 @@ export interface BrandIdentity {
   readonly tagline: string;
   /** Display form, for a footer. 'swiggy.com'. */
   readonly url: string;
-  /** Where the CTA actually goes. */
+  /**
+   * WHERE THE CTA GOES, and it may be an app deeplink.
+   *
+   * A branded game is an acquisition unit, so the button wants to land the
+   * player inside the app rather than on a web page — `swiggy://restaurantList`
+   * rather than `https://…`. That is the whole point of the CTA.
+   */
   readonly href: string;
+  /**
+   * THE SAME DESTINATION, AS A UNIVERSAL WEB URL. Never a custom scheme.
+   *
+   * Two jobs, and both break if `href` is reused for them:
+   *
+   *   SHARING. A share goes to SOMEBODY ELSE, by definition — a person who may
+   *   not have the app, on a device that has never heard of the scheme. A
+   *   `swiggy://` link pasted into a chat is a dead string, and the share is the
+   *   one place the brand reaches a NEW person.
+   *
+   *   FALLBACK. A custom scheme does nothing in a desktop browser, which is
+   *   exactly where this unit gets reviewed. A CTA that silently does nothing
+   *   for the reviewer is a CTA that gets reported as broken.
+   *
+   * A brand with no app points this at the same value as `href`.
+   */
+  readonly webHref: string;
 }
 
 // ─── Colour ─────────────────────────────────────────────────────────────────
@@ -479,6 +502,22 @@ export interface BrandLogo {
   readonly knockout?: boolean;
 }
 
+// ─── Analytics ──────────────────────────────────────────────────────────────
+
+/**
+ * WHERE THIS BRAND'S NUMBERS GO.
+ *
+ * Per-brand rather than per-build, because the property belongs to the brand's
+ * own marketing team: two brands sharing one measurement ID means their traffic
+ * is merged into one report and neither can be read on its own. Optional,
+ * because a brand with no property should ship a game that simply never loads a
+ * third-party script — not one that fails to build.
+ */
+export interface BrandAnalytics {
+  /** A GA4 measurement ID, `G-XXXXXXXXXX`. */
+  readonly measurementId: string;
+}
+
 // ─── The module ─────────────────────────────────────────────────────────────
 
 /**
@@ -504,6 +543,8 @@ export interface BrandModule {
   readonly vocab: BrandVocabulary;
   readonly copy: BrandCopy;
   readonly logo: BrandLogo;
+  /** Omit entirely and the game loads no analytics script at all. */
+  readonly analytics?: BrandAnalytics;
 
   /**
    * PER-TOKEN ESCAPE HATCH, and it should stay nearly empty.
