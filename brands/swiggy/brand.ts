@@ -120,17 +120,42 @@ export const colors = {
   },
 
   /**
-   * THE MENU. Seven dishes, each with a silhouette the art can make unmistakable
+   * THE MENU. Six items, each with a silhouette the art can make unmistakable
    * and a palette that survives an orange ground.
    *
    * Note what is absent: gold. See the note on BrandColors.foods — the rakhi
    * owns gold in this game because rakhis are what open the door, and a food
    * item that reads as a rakhi breaks the counter the player must trust.
+   *
+   * FOUR OF THESE SIX ARE BREAD WITH A FILLING — burger, pizza, sub, sandwich —
+   * and that is the hardest thing this palette has been asked to do. Baked
+   * dough is one narrow band of warm tan, so the tans here are SPREAD ON
+   * PURPOSE and each one is minuted below: burger bun palest (#EEB878), pizza
+   * crust a shade deeper (#E0A75F), sub roll deeper and browner still
+   * (#DFA967), and the sandwich refusing the band altogether at #F7F2E6. That
+   * last one is not a fifth tan, it is the ABSENCE of one — pale sliced bread
+   * with no crust colour, which is the separation that survives at 22 units
+   * when the four silhouettes are all "slab with a stripe in it".
+   *
+   * The second axis is which ONE of them owns red. The pizza does, alone: its
+   * body IS the sauce. The sub carries red only as a thin tomato stripe, the
+   * burger and the sandwich carry none. Break that and the two reddest items
+   * become the two hardest to tell apart at speed.
    */
   foods: [
-    // Gulab jamun — syrup-dark spheres, a sugar sheen. The darkest dish here,
-    // and the one that can never be mistaken for anything metallic.
-    { body: '#8C4A22', shade: '#5E2E12', accent: '#FFE9C7', outline: '#02060C' },
+    // Burger — the round one, and the item whose four roles have to carry FIVE
+    // visible parts. `body` is the BUN, and it is the PALEST of the four tans
+    // in this set on purpose: the sub roll below is the same object family
+    // (baked dough round a filling) and the two must differ in value as well as
+    // in aspect ratio. `shade` is the CHEESE, a cheddar amber that also does
+    // the bun's toasting at low alpha; it is pushed ORANGE-ward (~31°) rather
+    // than yellow, because a yellow-gold slab in a food is the rakhi's colour
+    // and this file's one job is never to draw that. `accent` is LETTUCE — the
+    // brightest green in the set, which is what keeps the burger's frill
+    // distinct from the sub's deeper lettuce and the sandwich's herb line. The
+    // PATTY has no slot of its own: it is mixed from `shade` toward `outline`
+    // in the art, which is why no fifth token is needed here.
+    { body: '#EEB878', shade: '#E08A22', accent: '#6FBF3C', outline: '#02060C' },
     // Pastry — pink frosting, cream layers (`shade`), a red glacé cherry. The
     // cream is held in `shade` rather than `accent` because the cherry needs
     // the accent slot: it is the one mark that names this slice.
@@ -145,32 +170,40 @@ export const colors = {
     // value in the drawing, which is what stops the ball dissolving into the
     // Swiggy-orange girder it sits on.
     { body: '#E4761B', shade: '#9E430A', accent: '#E6E9F3', outline: '#02060C' },
-    // Ice cream — pink scoop, a cool paper tub (`shade`) that keeps it clear of
-    // the warm creams, and a tan wafer.
-    { body: '#F7C6D3', shade: '#E4E8F0', accent: '#B87A3E', outline: '#02060C' },
-    // Rasmalai — milk-white discs, a saffron pool (`shade`), pistachio flecks.
-    // The saffron is pushed orange-ward and away from any yellow-metal read.
-    { body: '#FFF8EC', shade: '#EE9330', accent: '#5FA02F', outline: '#02060C' },
-    // Chocolate pastry — a choux log: a warm tan body, a dark chocolate glaze
-    // in `shade`, a cream line in `accent`. The body is deliberately LIGHTER
-    // than the gulab jamun's #8C4A22, because the gulab jamun owns "the dark
-    // one" in this set and a second dark brown object would take that read
-    // away from it. The chocolate is confined to the glaze, where it is a
-    // stripe rather than a silhouette.
-    { body: '#CE9159', shade: '#3E2416', accent: '#FFF4E2', outline: '#02060C' },
-    // Burger — the one savoury item, and the only one whose four roles have to
-    // carry FIVE visible parts. `body` is the BUN, pale and toasted, and it is
-    // kept lighter and less red than the choux log's #CE9159 because those two
-    // are the closest pair in the set by silhouette family (both horizontal,
-    // both dark on top) and must not also be the closest pair by hue. `shade`
-    // is the CHEESE, a cheddar amber that also does the bun's toasting at low
-    // alpha; it is pushed ORANGE-ward (~31°) rather than yellow, because a
-    // yellow-gold slab in a food is the rakhi's colour and this file's one job
-    // is never to draw that. `accent` is LETTUCE — the only cold-ish hue in the
-    // drawing, and the mark that says "savoury" before the silhouette resolves.
-    // The PATTY has no slot of its own: it is mixed from `shade` toward
-    // `outline` in the art, which is why no fifth token is needed here.
-    { body: '#EEB878', shade: '#E08A22', accent: '#6FBF3C', outline: '#02060C' },
+    // Pizza — THE ONLY RED-DOMINANT ITEM IN THE SET, and that exclusivity is
+    // the separation. `body` is the SAUCE and it is the biggest area in the
+    // drawing, so a pizza wedge is a red object where the other three bread
+    // items are tan objects; nothing else here is allowed to take that.
+    // #C33A26 is pushed BRICK-ward — browner and darker than the rakhi's gem
+    // (#D42A2A) and than the pastry's cherry (#E0293F) — because the one red
+    // this game cannot lend out is the gem's. `shade` is the CRUST, a tan that
+    // sits between the burger's bun and the sub's roll. `accent` is the melted
+    // CHEESE, a pale cream rather than a yellow: mozzarella drawn in yellow is
+    // the rakhi's hue arriving through the back door. The PEPPERONI has no slot
+    // — it is `body` mixed toward `outline` in the art, which is exactly the
+    // relationship sauce and salami have on a real slice.
+    { body: '#C33A26', shade: '#E0A75F', accent: '#FFE9C4', outline: '#02060C' },
+    // Sub sandwich — NOT named for anybody's chain, and drawn as a generic long
+    // roll. `body` is the ROLL, and it is the CRUMB rather than the crust: the
+    // baked outside of both halves is an ink wash laid over it in the art,
+    // which lands near #C29A62 and puts the sub visibly deeper than the
+    // burger's #EEB878 — the two items that most resemble each other must not
+    // also share a value. `shade` is TOMATO, and it does two ingredients: the
+    // slices themselves, and the MEAT LINE, which is this red mixed back toward
+    // the roll to a warm salmon. That mix is what buys a three-colour filling
+    // without a fifth slot. `accent` is LETTUCE, deliberately DEEPER than the
+    // burger's #6FBF3C: the two items that both show a green frill must not
+    // show the same green.
+    { body: '#E4B071', shade: '#D63B2C', accent: '#4E9B2C', outline: '#02060C' },
+    // Sandwich — PALE SLICED BREAD WITH NO CRUST COLOUR, and the paleness does
+    // as much work as the shape. Every other bread item here is warm tan;
+    // #F7F2E6 is barely tinted at all, so at 22 units on an orange girder this
+    // is the WHITE item and no amount of blur makes it a pizza or a sub.
+    // `shade` is a COOL grey-blue: it tints the back half so the two triangles
+    // separate, and being cold is the point — a warm shadow would put the tan
+    // straight back in. `accent` is the filling, a single herb green, and the
+    // filling is single-coloured ON PURPOSE where the sub's is three-coloured.
+    { body: '#F7F2E6', shade: '#C3C9D9', accent: '#5EA733', outline: '#02060C' },
   ],
 
   accents: [
@@ -249,13 +282,15 @@ export const vocab = {
   collectiblePl: 'rakhis',
   /** Same order as colors.foods — the gate asserts the lengths match. */
   foods: [
-    'Gulab Jamun',
+    'Burger',
     'Pastry',
     'Motichoor Laddu',
-    'Ice Cream',
-    'Rasmalai',
-    'Chocolate Pastry',
-    'Burger',
+    'Pizza',
+    // NOT "Subway". The chain is a trademark, and a competitor's name inside a
+    // Swiggy-branded game implies a partnership that does not exist. The item
+    // is the shape, not the shop.
+    'Sub Sandwich',
+    'Sandwich',
   ],
   order: 'order',
   items: 'items',

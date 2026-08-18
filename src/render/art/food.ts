@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════════════════
- *  THE ORDER — seven dishes, and not one of them may read as a rakhi.
+ *  THE ORDER — six items, and not one of them may read as a rakhi.
  * ══════════════════════════════════════════════════════════════════════════
  *
  * THE FAILURE THIS FILE PREVENTS: A SECOND ROUND GOLD THING ON THE TOWER.
@@ -8,28 +8,57 @@
  * player has to be able to trust. A dish that reads as a gold disc at 22 units
  * does not cost a little polish — it makes the counter untrustworthy, because
  * the player cannot tell what they just picked up and the HUD is the only
- * witness. A tray of sweets makes this harder than a thali did: half of Indian
- * mithai is a small warm-coloured round object, which is also an exact
- * description of the collectible.
+ * witness.
  *
- * The brand's palettes refuse to help a dessert impersonate a rakhi (see the
+ * The brand's palettes refuse to help an item impersonate a rakhi (see the
  * note on `colors.foods` in src/brand/types.ts — no gold, anywhere, and the
  * laddu is SAFFRON rather than marigold for precisely that reason). Colour
- * alone is not enough at speed, so the SILHOUETTES carry the read too. Seven
+ * alone is not enough at speed, so the SILHOUETTES carry the read too. Six
  * shapes, sharing no skeleton with each other or with the medallion:
  *
- *   gulab jamun  THREE small spheres in a shallow dish — no single circle.
+ *   burger       a COMPACT ROUND stack under a domed sesame crown.
  *   pastry       a TALL slice with a FLAT top and a cherry — vertical.
  *   laddu        TWO granular balls, one in a pleated case — never one disc.
- *   ice cream    a TUB, wider than tall, with a dome and a wafer leaning out.
- *   rasmalai     TWO low flat discs lying in a pool — wide and horizontal.
- *   choc pastry  a LONG LOW LOG, glazed and drizzled — horizontal, not upright.
- *   burger       a STACK of ragged slabs under a domed crown — layered, savoury.
+ *   pizza        ONE scalene WEDGE, red-dominant, thick crust at the wide end.
+ *   sub          a LONG LOW split roll, 2.5:1, with a three-colour filling.
+ *   sandwich     TWO PALE TRIANGLES standing side by side — white, not tan.
  *
  * The rakhi is one centred circle with two threads leaving it sideways. None of
- * the seven shares that skeleton.
+ * the six shares that skeleton, and none of the six is round AND gold.
  *
- * ─── THE TWO DISHES THAT HAD TO EARN THEIR PLACE ───────────────────────────
+ * ─── THE HARD PART: FOUR OF THE SIX ARE BREAD WITH A FILLING ───────────────
+ *
+ * Burger, pizza, sub and sandwich occupy one visual space — baked dough, a
+ * filling stripe, warm tan, usually lettuce. This is the tightest set the file
+ * has carried, and the separation is ENGINEERED rather than assumed. Each item
+ * holds one half of a pair, and the four rules are:
+ *
+ *   ASPECT.  The burger is compact and ROUND (roughly 1.2:1). The sub is LONG
+ *            and LOW at 2.5:1 or more. That ratio alone survives a blur, which
+ *            matters because these two are the closest pair in the set: both
+ *            are a tan roll with a filling in the middle of it.
+ *   COLOUR.  The pizza is THE ONLY RED-DOMINANT ITEM. Its body is sauce, not
+ *            dough, so at speed it is a red object among tan ones. Nothing else
+ *            may take a red majority; the sub's tomato is a stripe.
+ *   VALUE.   The sandwich refuses the tan band altogether — PALE WHITE sliced
+ *            bread, no crust colour. Against three warm tans it is the light
+ *            one, and that is doing as much work as its shape.
+ *   COUNT.   Pizza is ONE wedge; the sandwich is TWO triangles. The two most
+ *            triangular items in the file are told apart by how many there are
+ *            before either outline resolves.
+ *
+ * ⚠ THE TRIANGLE TRAP, and it is the reason the pizza is drawn the way it is.
+ * This file used to carry a samosa, and at 22 units it read as a HAZARD WARNING
+ * SIGN — an actively wrong reading in a game that colour-codes hazards. The
+ * failure was specific: an EQUILATERAL triangle, point up, with a centred
+ * vertical seam — the ⚠ glyph, drawn in food colours. The pizza avoids all
+ * three parts of that. It is scalene, its apex points LEFT rather than up, the
+ * thick crust arc fattens one whole end, and the pepperoni breaks the interior
+ * so no centred seam can form. The sandwich's triangles are point-up, but there
+ * are two of them, they are different sizes, and they are white — a pair of
+ * unequal pale triangles is not a sign.
+ *
+ * ─── THE THREE ITEMS THAT HAD TO EARN THEIR PLACE ──────────────────────────
  *
  * THE LADDU is the closest call in the file, and it is worth being explicit
  * about why it is allowed to exist. A motichoor laddu is a warm round object,
@@ -43,48 +72,36 @@
  * keyline is also the heaviest in the set, because it is the only dish fighting
  * both the collectible and the Swiggy-orange girder it stands on.
  *
- * THE TWO PASTRIES DIFFER BY SHAPE FIRST, colour second, and that ordering is
- * the rule rather than a nicety: nothing in this game is separable by colour
- * alone. Kind 1 is an UPRIGHT SLICE — flat top, cherry, vertical. Kind 5 is a
- * HORIZONTAL LOG — long, low, glazed. Recoloured to the same hue they would
- * still be two different objects, which is the test. The log is also kept
- * LIGHTER in value than the gulab jamun, which owns "the dark one" here; its
- * chocolate is a glaze stripe across the top, never the whole silhouette.
+ * THE BURGER VERSUS THE SUB is the closest pair in the file now that the two
+ * pastries are gone, and it is worth being explicit about how thin the margin
+ * is. Both are baked dough closed around a filling; recoloured identically they
+ * would still have to be separable, which is the test this file applies to
+ * everything. Three separations, applied together:
  *
- * ─── WHY THE SEVENTH IS A BURGER AND NOT A PIZZA SLICE ─────────────────────
+ *   PROPORTION. The burger is 1.2:1 and the sub is 2.5:1. This is the channel
+ *   that survives motion, blur and a dropped backing-store scale, and it is why
+ *   the sub is drawn to the full width of the cell and kept under ten units
+ *   tall even though a fatter roll would be prettier.
+ *   FILLING. The burger's filling is FOUR STACKED SLABS you can count — patty,
+ *   cheese, lettuce — reading vertically. The sub's is a THREE-COLOUR STRIPE
+ *   reading horizontally: green, red and a pink meat line side by side along
+ *   its length. One is a stack, the other is a row.
+ *   VALUE. The burger's bun is the palest tan in the set and the sub's roll is
+ *   the deepest-baked, with the toasting pushed further by an ink wash.
  *
- * A pizza slice is a TRIANGLE, and the triangle is the one shape this file has
- * already been burned by — see the samosa, two paragraphs down. The burger's
- * dome-on-a-stack skeleton collides with nothing in the six above it.
+ * THE SANDWICH IS PALE BEFORE IT IS ANYTHING ELSE. It is the only item here
+ * drawn in white bread with no crust colour at all, and the paleness is the
+ * separator that works when the two triangles are eight pixels wide. Its
+ * filling is a SINGLE green, deliberately, where the sub's is three colours —
+ * so even the fillings of the two "cut open" items do not rhyme.
  *
- * It is also the only savoury thing on a tray of sweets, which is an argument
- * FOR it — one of the most ordered objects on the platform — but it raises the
- * bar on the drawing: a burger that reads as "a stacked snack" has bought
- * nothing. What names it is LAYERS WITH RAGGED EDGES. The lettuce frill sticks
- * out past the bun and dips unevenly; the cheese hangs a corner off the front.
- * Both are irregular ON PURPOSE, because at 22 units a stack of tidy discs is a
- * macaron tower and the only thing that separates the two is the ragged edge.
- *
- * ITS NEAREST NEIGHBOUR IS THE CHOCOLATE PASTRY, and the two are separated on
- * three channels at once. The éclair is ONE smooth capsule with a glaze poured
- * over it; the burger is FOUR visibly separate slabs, and you can count them.
- * The éclair's ends are fully rounded, so its silhouette is a lozenge; the
- * burger's base is FLAT and its crown is a dome, so its silhouette has a
- * corner at each bottom edge and none at the top. And the burger carries green,
- * which the éclair — and the whole warm half of this set — does not.
- *
- * The bun is also kept clearly NOT SPHERICAL: the dome is nearly three times
- * wider than it is tall and it sits on a flat cut. The laddu and the gulab
- * jamun own the round-warm-object lane here, and a bun drawn as a ball would
- * be a third entrant in the one lane this file most wants kept thin.
- *
- * ─── WHY THE ICE CREAM IS A TUB AND NOT A CONE ─────────────────────────────
- *
- * Twice-learnt. A cone at this size is a thin triangle, and the triangle this
- * file used to carry (a samosa) read as a HAZARD WARNING SIGN — an actively
- * wrong reading in a game that colour-codes hazards. And a cone is "a tall
- * thing with a round thing on top", which is already taken: that is the
- * pastry. The tub is wide, flat-based, and shares its outline with nothing.
+ * The burger's bun is also kept clearly NOT SPHERICAL: the dome is nearly three
+ * times wider than it is tall and it sits on a flat cut. The laddu owns the
+ * round-warm-object lane here, and a bun drawn as a ball would be a second
+ * entrant in the one lane this file most wants kept thin. What names the burger
+ * is LAYERS WITH RAGGED EDGES — the lettuce frill sticks out past the bun and
+ * dips unevenly, the cheese hangs a corner off the front. Both are irregular ON
+ * PURPOSE, because at 22 units a stack of tidy discs is a macaron tower.
  *
  * ─── THE KEYLINE IS LOAD-BEARING ───────────────────────────────────────────
  *
@@ -96,13 +113,13 @@
  * did for the savoury one, because four of these six are pale — and the laddu,
  * which is not pale, is orange on orange, which is the same problem twice.
  *
- * ─── THE BAKE COUNT IS SEVEN ───────────────────────────────────────────────
+ * ─── THE BAKE COUNT IS SIX ─────────────────────────────────────────────────
  *
  * One bake per dish and nothing else — no shine sweep, no rotation. The rakhi
  * quantises its highlight into 8 steps because it has a moving highlight; a
  * dish has none, so its only animation is the bob, which is a translate at blit
  * time and therefore free and continuous. Keeping it that way is what keeps a
- * tower carrying seven food items off the frame budget.
+ * tower carrying six food items off the frame budget.
  */
 
 import { FOOD_PALETTE, foodKind, COLORS, mix, withAlpha } from '../../brand';
@@ -121,7 +138,7 @@ const BOX_H = (R + PAD) * 2;
 const CX = BOX_W / 2;
 const CY = BOX_H / 2;
 
-/** One keyline weight for all seven, so the set reads as one set. */
+/** One keyline weight for all six, so the set reads as one set. */
 const LINE = 1.5;
 
 /**
@@ -155,7 +172,7 @@ export function foodBob(simTime: number, index: number): number {
  * Draw dish `kind` centred at (x, y) in stage units.
  *
  * `kind` is wrapped through `foodKind`, so a level authored against a brand
- * with seven dishes cannot render a blank sprite under a brand that ships three.
+ * with six dishes cannot render a blank sprite under a brand that ships three.
  */
 export function drawFoodArt(
   ctx: CanvasRenderingContext2D,
@@ -176,8 +193,8 @@ const ICON_BOX = 24;
  * ONE GLYPH FOR THE WHOLE ORDER — a takeaway bag, at ~16–20 units.
  *
  * The HUD needs a single mark meaning "the order", not six tiny dishes: at
- * HUD size a biryani bowl and a gulab jamun dish are both a small dark lozenge,
- * so seven glyphs would carry no more information than one and would cost the
+ * HUD size a burger and a sub are both a small tan lozenge,
+ * so six glyphs would carry no more information than one and would cost the
  * player a legend to read. The bag is also the one shape here that is not food —
  * which is what makes it read as a COUNTER rather than as one more dish.
  */
@@ -220,7 +237,7 @@ function paint(ctx: CanvasRenderingContext2D, k: number): void {
   // report. This is a bake-time callback, so it throws once, not per frame.
   switch (k) {
     case 0:
-      gulabJamun(ctx, p);
+      burger(ctx, p);
       break;
     case 1:
       pastry(ctx, p);
@@ -229,16 +246,13 @@ function paint(ctx: CanvasRenderingContext2D, k: number): void {
       motichoorLaddu(ctx, p);
       break;
     case 3:
-      iceCream(ctx, p);
+      pizza(ctx, p);
       break;
     case 4:
-      rasmalai(ctx, p);
+      subSandwich(ctx, p);
       break;
     case 5:
-      chocolatePastry(ctx, p);
-      break;
-    case 6:
-      burger(ctx, p);
+      sandwich(ctx, p);
       break;
     default:
       ctx.restore();
@@ -258,60 +272,171 @@ function inked(ctx: CanvasRenderingContext2D, fill: string, outline: string): vo
 }
 
 /**
- * GULAB JAMUN — three syrup-dark spheres in a shallow dish.
+ * BURGER — a sesame crown, a lettuce frill, a cheese slice with a corner
+ * hanging off it, a dark patty, and a flat base bun.
  *
- * THREE, and that count is the anti-rakhi decision. One sphere in a dish is a
- * medallion in a setting; three of them are a portion, because no one of them
- * is the centre of the drawing. They are also the darkest thing in the dessert
- * set against the palest dish, so the group reads as a cluster at a glance
- * rather than as an object with a rim — and in a tray of six sweets that are
- * otherwise pale, being the dark one is half of this dish's identity.
+ * FOUR TOKENS, FIVE PARTS, and the sharing is deliberate. `body` is the BUN and
+ * both halves of it — one colour top and bottom is what makes them read as a
+ * pair enclosing a filling, rather than as two unrelated slabs. `shade` is the
+ * CHEESE, and at low alpha it is also the toasting on both buns, which is true
+ * to the object: a bun's shading and a cheddar slice are the same family of
+ * warm amber. `accent` is the LETTUCE. The PATTY is the one part with no token,
+ * and it does not need one — mixed from the cheese most of the way to ink it
+ * lands on a grilled brown, which is exactly the relationship the two have on a
+ * real burger and one fewer literal in the brand.
+ *
+ * THE ORDER OF DRAWING IS THE ORDER OF THE STACK, bottom first, so every layer
+ * overlaps the one below it and the whole thing has depth from overlap alone —
+ * the same trick the gulab jamun's three spheres use, and just as free.
+ *
+ * THE RAGGED EDGES ARE THE DISH. See the header: tidy slabs are a macaron
+ * tower. The frill's dips are deliberately UNEVEN in both depth and spacing —
+ * an even scallop is a doily — and the cheese hangs ONE big corner and one
+ * small one rather than a repeated fringe, for the same reason.
  */
-function gulabJamun(ctx: CanvasRenderingContext2D, p: Palette): void {
-  // The dish, in the sugar-cream accent: wide, shallow, flat-based.
+function burger(ctx: CanvasRenderingContext2D, p: Palette): void {
+  // The patty, mixed rather than declared — see the note above and the palette
+  // comment in brands/swiggy/brand.ts.
+  const patty = mix(p.shade, p.outline, 0.58);
+  /** The toasting on both buns, and the only place `shade` is not the cheese. */
+  const toast = withAlpha(p.shade, 0.3);
+
+  // ── The base bun: FLAT-BOTTOMED, and that flat is half of the silhouette's
+  // argument with the éclair, whose ends and belly are one continuous curve.
+  const base = (): void => {
+    ctx.beginPath();
+    ctx.moveTo(-10.6, 5.4);
+    ctx.lineTo(10.6, 5.4);
+    ctx.lineTo(10.6, 8.2);
+    ctx.quadraticCurveTo(10.6, 10, 8.6, 10);
+    ctx.lineTo(-8.6, 10);
+    ctx.quadraticCurveTo(-10.6, 10, -10.6, 8.2);
+    ctx.closePath();
+  };
+  base();
+  inked(ctx, p.body, p.outline);
+  ctx.save();
+  base();
+  ctx.clip();
+  ctx.fillStyle = toast;
+  ctx.fillRect(-11, 7.8, 22, 3);
+  ctx.restore();
+
+  // ── The patty: the darkest value in the drawing, and the only layer whose
+  // BOTTOM edge is bumpy — meat sits proud of the bun it rests on. Its top runs
+  // up behind the cheese, so the one straight edge it has is never on show.
   ctx.beginPath();
-  ctx.moveTo(-12.5, 0.5);
-  ctx.lineTo(12.5, 0.5);
-  ctx.lineTo(10, 3);
-  ctx.bezierCurveTo(9, 9, -9, 9, -10, 3);
+  ctx.moveTo(-11.4, 2.4);
+  ctx.quadraticCurveTo(-12, 6, -8.8, 6);
+  ctx.quadraticCurveTo(-5.8, 7, -3, 6.1);
+  ctx.quadraticCurveTo(0.2, 7.2, 3, 6);
+  ctx.quadraticCurveTo(6.2, 6.9, 8.8, 6);
+  ctx.quadraticCurveTo(12, 6, 11.4, 2.4);
+  ctx.closePath();
+  inked(ctx, patty, p.outline);
+
+  // A grill sheen, so the darkest slab is not one flat mass at speed.
+  ctx.strokeStyle = withAlpha(p.shade, 0.45);
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(-7.8, 4.2);
+  ctx.lineTo(-1.4, 4.2);
+  ctx.moveTo(2.4, 4.8);
+  ctx.lineTo(7.4, 4.8);
+  ctx.stroke();
+
+  // ── The cheese: a slab with ONE big corner hanging over the patty and one
+  // small one, off-centre. The corner is the mark that names this dish the way
+  // the cherry names the slice — nothing else in the set has a piece of itself
+  // hanging off the front.
+  //
+  // The slab runs up BEHIND the lettuce rather than butting against it. Two
+  // ragged edges meeting is a seam that opens: at some scales the girder shows
+  // through the join, and the two keylines it puts side by side thicken into a
+  // black bar across the middle of the stack. Overlapping layers, cut only by
+  // the layer in front, is how the whole stack is built.
+  ctx.beginPath();
+  ctx.moveTo(-11, -2.4);
+  ctx.lineTo(11, -2.4);
+  ctx.lineTo(11, 3);
+  ctx.lineTo(8.2, 3);
+  ctx.lineTo(6.1, 6.9);
+  ctx.lineTo(4.1, 3);
+  ctx.lineTo(-3.4, 3);
+  ctx.lineTo(-4.9, 5.4);
+  ctx.lineTo(-6.5, 3);
+  ctx.lineTo(-11, 3);
+  ctx.closePath();
+  inked(ctx, p.shade, p.outline);
+
+  // ── The lettuce: WIDER THAN EITHER BUN, so it breaks the stack's outline
+  // sideways. A frill that stops at the bun's edge is another slab; one that
+  // pokes out is a leaf. Its lower edge is uneven in BOTH depth and spacing —
+  // an even scallop is a doily.
+  ctx.beginPath();
+  ctx.moveTo(-12.4, -3);
+  ctx.lineTo(-12.4, -1.6);
+  ctx.quadraticCurveTo(-11.6, 1, -9.4, 0);
+  ctx.quadraticCurveTo(-7.6, 1.5, -5.4, 0.2);
+  ctx.quadraticCurveTo(-2.9, 0.7, -1.6, -0.5);
+  ctx.quadraticCurveTo(0.8, 1.7, 3.2, 0);
+  ctx.quadraticCurveTo(5.4, 0.6, 7.2, 0.3);
+  ctx.quadraticCurveTo(9.8, 1.5, 12.4, -1);
+  ctx.lineTo(12.4, -3);
   ctx.closePath();
   inked(ctx, p.accent, p.outline);
 
-  // Syrup pooled in the bottom of the dish.
-  ctx.save();
+  // One vein, hairline, following the frill. Anything heavier is a stripe.
+  ctx.strokeStyle = withAlpha(p.outline, 0.28);
+  ctx.lineWidth = 0.7;
   ctx.beginPath();
-  ctx.moveTo(-12.5, 0.5);
-  ctx.lineTo(12.5, 0.5);
-  ctx.lineTo(10, 3);
-  ctx.bezierCurveTo(9, 9, -9, 9, -10, 3);
-  ctx.closePath();
+  ctx.moveTo(-10.6, -1.4);
+  ctx.quadraticCurveTo(-4, 0.2, 2.4, -1.2);
+  ctx.quadraticCurveTo(7.6, -1.9, 11, -1.7);
+  ctx.stroke();
+
+  // ── The crown: a DOME NEARLY THREE TIMES WIDER THAN IT IS TALL, sitting on a
+  // straight cut. Not a ball — the laddu and the gulab jamun own that lane, and
+  // a spherical bun would put a third warm round object into it.
+  const crown = (): void => {
+    ctx.beginPath();
+    ctx.moveTo(-11.4, -1.9);
+    ctx.bezierCurveTo(-11.9, -7.7, -7.2, -10.4, 0, -10.4);
+    ctx.bezierCurveTo(7.2, -10.4, 11.9, -7.7, 11.4, -1.9);
+    ctx.closePath();
+  };
+  crown();
+  inked(ctx, p.body, p.outline);
+
+  // Toasting under the crown's brow, so the dome is a solid rather than a decal.
+  ctx.save();
+  crown();
   ctx.clip();
-  ctx.fillStyle = withAlpha(p.shade, 0.5);
-  ctx.fillRect(-13, 3.4, 26, 6);
+  ctx.fillStyle = toast;
+  ctx.fillRect(-12, -3.8, 24, 3);
+  ctx.fillStyle = withAlpha(p.outline, 0.1);
+  ctx.fillRect(6.2, -11, 6, 10);
   ctx.restore();
 
-  // The back sphere first, then the two in front, so the group has depth from
-  // overlap alone — no gradients, nothing per-frame.
-  ball(ctx, p, 0, -5.6, 4.6);
-  ball(ctx, p, -5.4, -1.6, 5);
-  ball(ctx, p, 5.4, -1.6, 5);
-}
-
-function ball(
-  ctx: CanvasRenderingContext2D,
-  p: Palette,
-  bx: number,
-  by: number,
-  r: number,
-): void {
-  ctx.beginPath();
-  ctx.arc(bx, by, r, 0, Math.PI * 2);
-  inked(ctx, p.body, p.outline);
-  // A sugar catchlight, up and left, in the same accent as the dish.
-  ctx.fillStyle = p.accent;
-  ctx.beginPath();
-  ctx.arc(bx - r * 0.32, by - r * 0.36, r * 0.24, 0, Math.PI * 2);
-  ctx.fill();
+  // THE SESAME. Five seeds, scattered and each at its own angle — five, because
+  // three reads as a face and a dozen reads as the laddu's boondi, which is the
+  // one texture in this file that is spoken for. They are ELLIPSES, not dots,
+  // for the same reason.
+  ctx.lineWidth = 0.6;
+  ctx.strokeStyle = withAlpha(p.outline, 0.45);
+  ctx.fillStyle = mix(p.body, p.shade, 0.5);
+  for (const [sx, sy, rot] of [
+    [-6.4, -5.2, -0.5],
+    [-2.6, -7.4, 0.12],
+    [1.8, -6.4, -0.22],
+    [5.9, -4.6, 0.42],
+    [-0.6, -4.2, 0.06],
+  ] as const) {
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 1.5, 0.85, rot, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
 }
 
 /**
@@ -540,431 +665,365 @@ function laddu(
 }
 
 /**
- * ICE CREAM — a tub, a domed scoop and a wafer leaning out of it.
+ * PIZZA — ONE scalene wedge, red-dominant, with a thick crust arc at the wide
+ * end and pepperoni breaking the middle of it.
  *
- * A TUB, NOT A CONE, and the header says why twice over. The tub is WIDER THAN
- * TALL and flat-based, so its silhouette is a trapezoid — the one outline in
- * the set that is neither round, nor pointed, nor a slab.
+ * THE APEX POINTS LEFT, AND THAT IS THE WHOLE POINT. See the trap in the
+ * header: the triangle this file was burned by was equilateral, point UP, with
+ * a centred vertical seam — the ⚠ glyph in food colours. Every one of those
+ * three properties is refused here. The two straight edges are of visibly
+ * different length, the wide end is fattened by a crust arc so the shape is
+ * lopsided, and four salami discs sit off the centre line so no vertical seam
+ * can form. Turned upside down it is still a wedge of pizza and still not a
+ * road sign.
  *
- * The tub is the set's only COOL colour. Four of these six desserts are warm
- * pale things on a warm orange tower, and giving one of them a blue-white
- * paper cup buys a separation that no amount of drawing does.
+ * IT IS THE ONLY RED-DOMINANT ITEM IN THE SET, and that is its main separator
+ * from the other three bread-and-filling items. `body` is therefore the SAUCE
+ * rather than the dough: the biggest area in the drawing is red, so at 22 units
+ * this is a red object standing among tan ones and the read is done before the
+ * outline resolves. The sauce is a BRICK red, pushed browner and darker than
+ * the rakhi's gem, because a bright crimson disc-sized patch on a girder is the
+ * one thing the collectible owns.
  *
- * The wafer is drawn BEFORE the scoop so it is planted in it rather than laid
- * on it, and it leans out sideways — which, like the chai handle it replaces,
- * breaks the silhouette in a direction a medallion never does.
+ * FOUR TOKENS, FIVE PARTS. `shade` is the CRUST and it does double duty as the
+ * dough lip along the lower cut edge — those are the same material, so sharing
+ * is honest rather than a compromise. `accent` is the melted cheese, a pale
+ * cream and never a yellow. The PEPPERONI has no token: it is the sauce mixed
+ * most of the way to ink, which is exactly the relationship the two have on a
+ * real slice and one fewer literal in the brand.
  */
-function iceCream(ctx: CanvasRenderingContext2D, p: Palette): void {
-  // The tub: straight tapered walls, flat base, softened bottom corners.
-  ctx.beginPath();
-  ctx.moveTo(-9.4, -1.2);
-  ctx.lineTo(9.4, -1.2);
-  ctx.lineTo(7.4, 8.8);
-  ctx.quadraticCurveTo(7.1, 10.4, 5.5, 10.4);
-  ctx.lineTo(-5.5, 10.4);
-  ctx.quadraticCurveTo(-7.1, 10.4, -7.4, 8.8);
-  ctx.closePath();
-  inked(ctx, p.shade, p.outline);
+function pizza(ctx: CanvasRenderingContext2D, p: Palette): void {
+  /** Salami: the sauce taken most of the way to ink — see the note above. */
+  const pepperoni = mix(p.body, p.outline, 0.36);
 
-  // Two flutes down the cup — the detail that says "paper tub" rather than
-  // "bucket". Hairlines, because at this size anything heavier is a stripe.
-  ctx.strokeStyle = withAlpha(p.outline, 0.22);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(-3.4, 0.4);
-  ctx.lineTo(-2.6, 9.4);
-  ctx.moveTo(3.4, 0.4);
-  ctx.lineTo(2.6, 9.4);
-  ctx.stroke();
-
-  // The rolled rim, as a bar rather than a stroke — a 1-unit stroked rim is the
-  // first thing to vanish when the device drops the backing-store scale.
-  ctx.beginPath();
-  roundRect(ctx, -10.4, -3.2, 20.8, 2.8, 1.3);
-  inked(ctx, p.shade, p.outline);
-
-  // The wafer, leaning out to the right.
-  ctx.save();
-  ctx.translate(6.2, -4.6);
-  ctx.rotate(0.42);
-  ctx.beginPath();
-  roundRect(ctx, -1.7, -9.4, 3.4, 11, 1.3);
-  inked(ctx, p.accent, p.outline);
-  ctx.strokeStyle = withAlpha(p.outline, 0.35);
-  ctx.lineWidth = 0.7;
-  for (const y of [-6.6, -4.2, -1.8]) {
+  // The wedge: apex low and LEFT, wide end right, crust arc bulging out of it.
+  const wedge = (): void => {
     ctx.beginPath();
-    ctx.moveTo(-1.4, y);
-    ctx.lineTo(1.4, y);
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // The scoop: a lobed dome, not a hemisphere. A clean half-circle sitting on a
-  // rim is a dome on a plinth; the lobes are what make it a soft scoop.
-  ctx.beginPath();
-  ctx.moveTo(-8.6, -2.2);
-  ctx.quadraticCurveTo(-8.8, -8.4, -4.2, -9.4);
-  ctx.quadraticCurveTo(-2.6, -12.8, 1, -11.6);
-  ctx.quadraticCurveTo(5.4, -10.6, 6.6, -6.4);
-  ctx.quadraticCurveTo(8.2, -5, 8.6, -2.2);
-  ctx.closePath();
-  inked(ctx, p.body, p.outline);
-
-  // One drip over the rim, on the far side from the wafer, so the scoop is
-  // visibly softer than the cup it is sitting in.
-  ctx.beginPath();
-  roundRect(ctx, -7.2, -2.8, 3.4, 4.6, 1.7);
-  inked(ctx, p.body, p.outline);
-}
-
-/**
- * RASMALAI — two flat discs lying in a shallow saffron pool.
- *
- * LOW AND WIDE, and FLAT. The discs are drawn as squashed ellipses seen from
- * above and slightly in front, so no circle in this drawing is ever round: the
- * one silhouette this dish must not have is the one it would get from drawing
- * the same discs face-on. They also overlap and sit BELOW the dish's rim line,
- * so the eye reads a portion in a bowl rather than two objects on a stand.
- *
- * It shares the shallow-bowl outline with the gulab jamun, and that is worth
- * saying out loud: the two are told apart by VALUE, not by shape. Gulab jamun
- * is the darkest thing in the set and rises above its rim as spheres; rasmalai
- * is the palest and stays flat inside its rim, in a saffron pool nothing else
- * here has. Change either of those and the pair collapses into one dish.
- */
-function rasmalai(ctx: CanvasRenderingContext2D, p: Palette): void {
-  const bowl = (): void => {
-    ctx.beginPath();
-    ctx.moveTo(-12.5, 0.6);
-    ctx.lineTo(12.5, 0.6);
-    ctx.lineTo(10.5, 3);
-    ctx.bezierCurveTo(9.5, 9, -9.5, 9, -10.5, 3);
+    ctx.moveTo(-12.2, 2.6);
+    ctx.lineTo(3.2, -10.4);
+    ctx.quadraticCurveTo(11.8, -4.6, 10.2, 7.4);
     ctx.closePath();
   };
-
-  bowl();
+  wedge();
   inked(ctx, p.body, p.outline);
 
-  // The saffron, filling the bowl. Held to the inside of the clip so the rim
-  // stays milk-white — a bowl filled edge to edge with warm colour is a disc.
+  // THE DOUGH LIP, along the LOWER cut edge only. One side, not both: a rim on
+  // every edge is a bordered triangle, which is the sign this drawing is
+  // avoiding, and a slice cut from a pizza only has crust at one end anyway.
+  // Stroked inside a clip so it takes the wedge's own corners.
   ctx.save();
-  bowl();
+  wedge();
   ctx.clip();
-  // A BAND, not a fill. Saffron edge to edge turned the bowl's whole outline
-  // saffron, and saffron on a Swiggy-orange girder is a keyline holding back a
-  // colour that wants to merge with the tower. Held to a band under the rim,
-  // the pool still reads as a pool and the SILHOUETTE stays milk-white, which
-  // is the only value in this set that the girder cannot swallow.
-  ctx.fillStyle = p.shade;
-  ctx.fillRect(-13, 0.8, 26, 3.6);
+  ctx.strokeStyle = p.shade;
+  ctx.lineWidth = 3.4;
+  ctx.beginPath();
+  ctx.moveTo(-12.8, 2.5);
+  ctx.lineTo(10.6, 7.6);
+  ctx.stroke();
   ctx.restore();
 
-  // The rim, white, as a bar.
+  // THE CRUST, a thick arc across the wide end — the mark that names this the
+  // way the cherry names the pastry slice, and the reason the shape is fat at
+  // one end and pointed at the other rather than evenly tapered.
   ctx.beginPath();
-  roundRect(ctx, -12.5, -0.8, 25, 2.6, 1.2);
-  inked(ctx, p.body, p.outline);
+  ctx.moveTo(3.2, -10.4);
+  ctx.quadraticCurveTo(11.8, -4.6, 10.2, 7.4);
+  ctx.lineTo(7.2, 5.4);
+  ctx.quadraticCurveTo(8.4, -3.8, 1.8, -7.6);
+  ctx.closePath();
+  inked(ctx, p.shade, p.outline);
 
-  // The two discs, back one first. Wider than they are tall by nearly two to
-  // one, which is what makes them read as soaked patties rather than as balls.
-  disc(ctx, p, 5.2, -1.4, 6.2, 3.6);
-  disc(ctx, p, -5, -2.8, 6.6, 3.9);
-
-  // Pistachio, scattered across both. Three flecks: two reads as a pair of
-  // eyes, four reads as texture.
+  // Melted cheese: three irregular pools, none of them centred. Ellipses at
+  // their own angles, because three tidy circles would rhyme with the salami.
   ctx.fillStyle = p.accent;
-  for (const [fx, fy, rot] of [
-    [-6.8, -4.2, -0.4],
-    [-2.6, -2.6, 0.3],
-    [4.8, -2.8, -0.2],
+  for (const [cx2, cy2, rx, ry, rot] of [
+    [-6.9, -0.2, 2.5, 1.5, -0.3],
+    [-1.8, -5.2, 2.1, 1.2, 0.42],
+    [1.4, 3.4, 1.8, 1.1, -0.5],
   ] as const) {
     ctx.beginPath();
-    ctx.ellipse(fx, fy, 1.5, 1, rot, 0, Math.PI * 2);
+    ctx.ellipse(cx2, cy2, rx, ry, rot, 0, Math.PI * 2);
     ctx.fill();
   }
-}
 
-function disc(
-  ctx: CanvasRenderingContext2D,
-  p: Palette,
-  dx: number,
-  dy: number,
-  rx: number,
-  ry: number,
-): void {
-  ctx.beginPath();
-  ctx.ellipse(dx, dy, rx, ry, 0, 0, Math.PI * 2);
-  inked(ctx, p.body, p.outline);
-  // Saffron soaking up the near edge of the disc, so it sits IN the pool.
-  ctx.fillStyle = withAlpha(p.shade, 0.55);
-  ctx.beginPath();
-  ctx.ellipse(dx + rx * 0.1, dy + ry * 0.45, rx * 0.72, ry * 0.4, 0, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-/**
- * CHOCOLATE PASTRY — an éclair: a long low log, split, filled, and glazed.
- *
- * HORIZONTAL, and that is the entire reason this dish is drawn the way it is.
- * The set already has a pastry, and it is a TALL upright slice. A second slice
- * in brown would be the same object in a different colour, which is the one
- * kind of variety this game does not accept: colour is never the sole channel
- * here, because at speed, on an orange ground, under a colour-blind player, it
- * is the channel that fails first. Upright wedge against horizontal log is a
- * difference you can read from the silhouette alone, with the palette off.
- *
- * THE SPLIT IS WHAT MAKES IT AN ÉCLAIR rather than a log of chocolate. Three
- * bands stacked — pastry, a cream line running the full length, pastry — and
- * the cream line is the mark that names the dish, the way the cherry names the
- * slice. It also does structural work: it cuts the shape in half lengthways so
- * the log never reads as one solid dark mass.
- *
- * KEPT LIGHTER THAN THE GULAB JAMUN, deliberately. That dish is the darkest
- * thing in the set and being the dark one is half its identity; a second dark
- * brown object would take it away from it. So the CHOUX is a warm tan and the
- * chocolate is confined to a glaze across the top, lifted further by a cream
- * drizzle over it. The two are also never the same shape — three spheres in a
- * dish against one long bar.
- */
-function chocolatePastry(ctx: CanvasRenderingContext2D, p: Palette): void {
-  // ONE LOG, drawn as a capsule with fully rounded ends. One shape, not three
-  // stacked bars: an earlier version drew the split as a top slab, a cream
-  // slab and a bottom slab, and three stacked bars with square-ish ends is a
-  // SANDWICH. The filling has to be a line INSIDE a log, never a layer of it.
-  const log = (): void => {
+  // THE PEPPERONI. Four, scattered off the centre line and of two sizes — four
+  // rather than three, because three evenly placed dots on a triangle is a
+  // face, and off-centre because a single disc centred on a coloured field is a
+  // gem in a setting and this file's one job is never to draw that.
+  ctx.lineWidth = 0.7;
+  for (const [dx, dy, r] of [
+    [-6.6, 1.4, 1.5],
+    [-1.2, -1.6, 1.9],
+    [2.6, 1.9, 1.7],
+    [0.6, -5.6, 1.4],
+  ] as const) {
     ctx.beginPath();
-    roundRect(ctx, -12.4, -6.2, 24.8, 12.6, 6.3);
-  };
-  log();
-  inked(ctx, p.body, p.outline);
-
-  // The underside, so the log is round rather than a flat plank.
-  ctx.save();
-  log();
-  ctx.clip();
-  ctx.fillStyle = withAlpha(p.shade, 0.16);
-  ctx.fillRect(-13, 3.4, 26, 5);
-
-  // THE GLAZE, poured over the top and stopping well short of the log's belly.
-  // Clipped to the log, so it takes the capsule's own curve at both ends and
-  // can never be a rectangle sitting on a rounded shape. Its lower edge runs
-  // in shallow scallops — poured chocolate does not stop on a straight line,
-  // and that ripple is what tells a glaze from a printed stripe at 22 units.
-  ctx.beginPath();
-  ctx.moveTo(-13, -7);
-  ctx.lineTo(13, -7);
-  ctx.lineTo(13, -2.2);
-  ctx.quadraticCurveTo(9.6, -0.6, 6.5, -2.2);
-  ctx.quadraticCurveTo(3.2, -0.6, 0, -2.2);
-  ctx.quadraticCurveTo(-3.2, -0.6, -6.5, -2.2);
-  ctx.quadraticCurveTo(-9.6, -0.6, -13, -2.2);
-  ctx.closePath();
-  ctx.fillStyle = p.shade;
-  ctx.fill();
-  ctx.restore();
-
-  // The glaze's own edge, stroked over the top arc of the log so the chocolate
-  // reads as a layer with a thickness rather than as a stain in the pastry.
-  ctx.save();
-  log();
-  ctx.clip();
-  ctx.strokeStyle = withAlpha(p.outline, 0.45);
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.moveTo(-13, -2.2);
-  ctx.quadraticCurveTo(-9.6, -0.6, -6.5, -2.2);
-  ctx.quadraticCurveTo(-3.2, -0.6, 0, -2.2);
-  ctx.quadraticCurveTo(3.2, -0.6, 6.5, -2.2);
-  ctx.quadraticCurveTo(9.6, -0.6, 13, -2.2);
-  ctx.stroke();
-  ctx.restore();
-
-  // THE CREAM, a line along the side and INSET from both ends — the mark that
-  // names this dish the way the cherry names the slice, and the thing that
-  // stops a long brown object reading as a solid bar of chocolate. Inset,
-  // because a filling that runs out of the ends of the pastry is a layer.
-  ctx.beginPath();
-  roundRect(ctx, -8.8, 0.6, 17.6, 2.5, 1.25);
-  inked(ctx, p.accent, withAlpha(p.outline, 0.45));
-
-  // The drizzle: three cream lines piped across the glaze. The éclair's
-  // signature, and what keeps the darkest area of this dish off one flat value.
-  ctx.strokeStyle = withAlpha(p.accent, 0.9);
-  ctx.lineWidth = 1.1;
-  for (const dx of [-6.4, -0.6, 5.2]) {
-    ctx.beginPath();
-    ctx.moveTo(dx - 1.6, -5.4);
-    ctx.lineTo(dx + 1.6, -3.4);
+    ctx.arc(dx, dy, r, 0, Math.PI * 2);
+    ctx.fillStyle = pepperoni;
+    ctx.fill();
+    ctx.strokeStyle = withAlpha(p.outline, 0.5);
     ctx.stroke();
   }
+
+  // The keyline last, back onto the wedge itself: the crust and the lip both
+  // cross it, and an edge that is drawn over is an edge that is gone.
+  wedge();
+  ctx.strokeStyle = p.outline;
+  ctx.lineWidth = LINE;
+  ctx.stroke();
 }
 
 /**
- * BURGER — a sesame crown, a lettuce frill, a cheese slice with a corner
- * hanging off it, a dark patty, and a flat base bun.
+ * SUB SANDWICH — a long split roll with a three-colour filling.
  *
- * FOUR TOKENS, FIVE PARTS, and the sharing is deliberate. `body` is the BUN and
- * both halves of it — one colour top and bottom is what makes them read as a
- * pair enclosing a filling, rather than as two unrelated slabs. `shade` is the
- * CHEESE, and at low alpha it is also the toasting on both buns, which is true
- * to the object: a bun's shading and a cheddar slice are the same family of
- * warm amber. `accent` is the LETTUCE. The PATTY is the one part with no token,
- * and it does not need one — mixed from the cheese most of the way to ink it
- * lands on a grilled brown, which is exactly the relationship the two have on a
- * real burger and one fewer literal in the brand.
+ * NOT NAMED FOR ANYBODY'S CHAIN, and drawn as the generic object: a long roll
+ * with a lid. The shape is public, the branding is not, and a competitor's
+ * livery inside a Swiggy game would imply a partnership that does not exist.
  *
- * THE ORDER OF DRAWING IS THE ORDER OF THE STACK, bottom first, so every layer
- * overlaps the one below it and the whole thing has depth from overlap alone —
- * the same trick the gulab jamun's three spheres use, and just as free.
+ * 2.5:1, AND THE RATIO IS THE ARGUMENT WITH THE BURGER. Those two are the
+ * closest pair in the set — both are baked dough closed around a filling — and
+ * proportion is the one channel that still separates them when the sprite is
+ * blurred, bobbing, and sixteen pixels wide. So this is drawn to the full width
+ * of the cell and held under ten units tall, even though a fatter roll would
+ * look better in isolation. It is never allowed to become square.
  *
- * THE RAGGED EDGES ARE THE DISH. See the header: tidy slabs are a macaron
- * tower. The frill's dips are deliberately UNEVEN in both depth and spacing —
- * an even scallop is a doily — and the cheese hangs ONE big corner and one
- * small one rather than a repeated fringe, for the same reason.
+ * THE FILLING IS A ROW, NOT A STACK. The burger's layers read vertically and
+ * you count them; this one's read horizontally, as a stripe of three colours
+ * running the length of the roll — green, red and a pink meat line. That
+ * difference in DIRECTION is the second half of the separation, and it is why
+ * the lettuce is drawn as a long ragged ribbon rather than as one leaf.
+ *
+ * FOUR TOKENS, FIVE PARTS, and here is the sharing. `body` is the roll, both
+ * halves; the baked colour on the OUTSIDE of both halves is an ink wash over it
+ * rather than a token, which is what makes the crumb read pale and the crust
+ * read deep from one colour. `shade` is the TOMATO. `accent` is the LETTUCE,
+ * deliberately a deeper green than the burger's. The MEAT has no token: it is
+ * the tomato mixed back toward the roll, which lands on a warm salmon — the
+ * honest colour of sliced ham next to bread, and the closest this palette can
+ * get to a rose without spending a fifth slot on it.
  */
-function burger(ctx: CanvasRenderingContext2D, p: Palette): void {
-  // The patty, mixed rather than declared — see the note above and the palette
-  // comment in brands/swiggy/brand.ts.
-  const patty = mix(p.shade, p.outline, 0.58);
-  /** The toasting on both buns, and the only place `shade` is not the cheese. */
-  const toast = withAlpha(p.shade, 0.3);
+function subSandwich(ctx: CanvasRenderingContext2D, p: Palette): void {
+  /** Sliced meat: the tomato mixed back toward the roll — see the note above. */
+  const meat = mix(p.shade, p.body, 0.55);
+  /** The bake on the OUTSIDE of both halves. Ink, not a token. */
+  const toast = withAlpha(p.outline, 0.15);
 
-  // ── The base bun: FLAT-BOTTOMED, and that flat is half of the silhouette's
-  // argument with the éclair, whose ends and belly are one continuous curve.
-  const base = (): void => {
+  // ── The bottom half: a long shallow trough, flat enough to sit on a girder.
+  const bottom = (): void => {
     ctx.beginPath();
-    ctx.moveTo(-10.6, 5.4);
-    ctx.lineTo(10.6, 5.4);
-    ctx.lineTo(10.6, 8.2);
-    ctx.quadraticCurveTo(10.6, 10, 8.6, 10);
-    ctx.lineTo(-8.6, 10);
-    ctx.quadraticCurveTo(-10.6, 10, -10.6, 8.2);
-    ctx.closePath();
+    roundRect(ctx, -12.4, 1.4, 24.8, 3.8, 1.9);
   };
-  base();
+  bottom();
   inked(ctx, p.body, p.outline);
   ctx.save();
-  base();
+  bottom();
   ctx.clip();
   ctx.fillStyle = toast;
-  ctx.fillRect(-11, 7.8, 22, 3);
+  ctx.fillRect(-13, 3.4, 26, 2.4);
   ctx.restore();
 
-  // ── The patty: the darkest value in the drawing, and the only layer whose
-  // BOTTOM edge is bumpy — meat sits proud of the bun it rests on. Its top runs
-  // up behind the cheese, so the one straight edge it has is never on show.
+  // ── The meat, laid in first and running the full length: a wavy band along
+  // the BOTTOM of the gap, so the filling has a floor under the vegetables.
   ctx.beginPath();
-  ctx.moveTo(-11.4, 2.4);
-  ctx.quadraticCurveTo(-12, 6, -8.8, 6);
-  ctx.quadraticCurveTo(-5.8, 7, -3, 6.1);
-  ctx.quadraticCurveTo(0.2, 7.2, 3, 6);
-  ctx.quadraticCurveTo(6.2, 6.9, 8.8, 6);
-  ctx.quadraticCurveTo(12, 6, 11.4, 2.4);
+  ctx.moveTo(-11.9, -0.4);
+  ctx.lineTo(11.9, -0.4);
+  ctx.quadraticCurveTo(9.4, 2.4, 6.6, 1.2);
+  ctx.quadraticCurveTo(3.4, 2.6, 0.4, 1.3);
+  ctx.quadraticCurveTo(-2.8, 2.5, -5.8, 1.2);
+  ctx.quadraticCurveTo(-8.8, 2.4, -11.9, 1.1);
   ctx.closePath();
-  inked(ctx, patty, p.outline);
+  inked(ctx, meat, p.outline);
 
-  // A grill sheen, so the darkest slab is not one flat mass at speed.
-  ctx.strokeStyle = withAlpha(p.shade, 0.45);
-  ctx.lineWidth = 0.9;
-  ctx.beginPath();
-  ctx.moveTo(-7.8, 4.2);
-  ctx.lineTo(-1.4, 4.2);
-  ctx.moveTo(2.4, 4.8);
-  ctx.lineTo(7.4, 4.8);
-  ctx.stroke();
-
-  // ── The cheese: a slab with ONE big corner hanging over the patty and one
-  // small one, off-centre. The corner is the mark that names this dish the way
-  // the cherry names the slice — nothing else in the set has a piece of itself
-  // hanging off the front.
+  // ── THE VEGETABLES ALTERNATE ALONG THE LENGTH, and that is the whole reason
+  // this filling is drawn the way it is. Three stacked bands would rhyme with
+  // the burger, which is a stack you read vertically; a ROW of green clumps
+  // with red discs sitting in the gaps between them is read left to right, and
+  // that difference in direction is half of what separates the two items.
   //
-  // The slab runs up BEHIND the lettuce rather than butting against it. Two
-  // ragged edges meeting is a seam that opens: at some scales the girder shows
-  // through the join, and the two keylines it puts side by side thicken into a
-  // black bar across the middle of the stack. Overlapping layers, cut only by
-  // the layer in front, is how the whole stack is built.
+  // The lettuce first: a ribbon with four lobes, pushed WIDER THAN THE ROLL at
+  // both ends so green breaks the silhouette sideways.
   ctx.beginPath();
-  ctx.moveTo(-11, -2.4);
-  ctx.lineTo(11, -2.4);
-  ctx.lineTo(11, 3);
-  ctx.lineTo(8.2, 3);
-  ctx.lineTo(6.1, 6.9);
-  ctx.lineTo(4.1, 3);
-  ctx.lineTo(-3.4, 3);
-  ctx.lineTo(-4.9, 5.4);
-  ctx.lineTo(-6.5, 3);
-  ctx.lineTo(-11, 3);
-  ctx.closePath();
-  inked(ctx, p.shade, p.outline);
-
-  // ── The lettuce: WIDER THAN EITHER BUN, so it breaks the stack's outline
-  // sideways. A frill that stops at the bun's edge is another slab; one that
-  // pokes out is a leaf. Its lower edge is uneven in BOTH depth and spacing —
-  // an even scallop is a doily.
-  ctx.beginPath();
-  ctx.moveTo(-12.4, -3);
-  ctx.lineTo(-12.4, -1.6);
-  ctx.quadraticCurveTo(-11.6, 1, -9.4, 0);
-  ctx.quadraticCurveTo(-7.6, 1.5, -5.4, 0.2);
-  ctx.quadraticCurveTo(-2.9, 0.7, -1.6, -0.5);
-  ctx.quadraticCurveTo(0.8, 1.7, 3.2, 0);
-  ctx.quadraticCurveTo(5.4, 0.6, 7.2, 0.3);
-  ctx.quadraticCurveTo(9.8, 1.5, 12.4, -1);
-  ctx.lineTo(12.4, -3);
+  ctx.moveTo(-13.2, -1.6);
+  ctx.quadraticCurveTo(-11.6, -3.9, -9.2, -1.8);
+  ctx.quadraticCurveTo(-6.6, -4.2, -3.6, -1.7);
+  ctx.quadraticCurveTo(-0.6, -4.1, 2.4, -1.6);
+  ctx.quadraticCurveTo(5.4, -4.2, 8.4, -1.8);
+  ctx.quadraticCurveTo(10.8, -3.8, 12.9, -1.5);
+  ctx.lineTo(12.9, 0.6);
+  ctx.quadraticCurveTo(6.4, 1.6, 0, 0.7);
+  ctx.quadraticCurveTo(-6.4, 1.5, -13.2, 0.4);
   ctx.closePath();
   inked(ctx, p.accent, p.outline);
 
-  // One vein, hairline, following the frill. Anything heavier is a stripe.
-  ctx.strokeStyle = withAlpha(p.outline, 0.28);
-  ctx.lineWidth = 0.7;
-  ctx.beginPath();
-  ctx.moveTo(-10.6, -1.4);
-  ctx.quadraticCurveTo(-4, 0.2, 2.4, -1.2);
-  ctx.quadraticCurveTo(7.6, -1.9, 11, -1.7);
-  ctx.stroke();
-
-  // ── The crown: a DOME NEARLY THREE TIMES WIDER THAN IT IS TALL, sitting on a
-  // straight cut. Not a ball — the laddu and the gulab jamun own that lane, and
-  // a spherical bun would put a third warm round object into it.
-  const crown = (): void => {
-    ctx.beginPath();
-    ctx.moveTo(-11.4, -1.9);
-    ctx.bezierCurveTo(-11.9, -7.7, -7.2, -10.4, 0, -10.4);
-    ctx.bezierCurveTo(7.2, -10.4, 11.9, -7.7, 11.4, -1.9);
-    ctx.closePath();
-  };
-  crown();
-  inked(ctx, p.body, p.outline);
-
-  // Toasting under the crown's brow, so the dome is a solid rather than a decal.
-  ctx.save();
-  crown();
-  ctx.clip();
-  ctx.fillStyle = toast;
-  ctx.fillRect(-12, -3.8, 24, 3);
-  ctx.fillStyle = withAlpha(p.outline, 0.1);
-  ctx.fillRect(6.2, -11, 6, 10);
-  ctx.restore();
-
-  // THE SESAME. Five seeds, scattered and each at its own angle — five, because
-  // three reads as a face and a dozen reads as the laddu's boondi, which is the
-  // one texture in this file that is spoken for. They are ELLIPSES, not dots,
-  // for the same reason.
-  ctx.lineWidth = 0.6;
-  ctx.strokeStyle = withAlpha(p.outline, 0.45);
-  ctx.fillStyle = mix(p.body, p.shade, 0.5);
-  for (const [sx, sy, rot] of [
-    [-6.4, -5.2, -0.5],
-    [-2.6, -7.4, 0.12],
-    [1.8, -6.4, -0.22],
-    [5.9, -4.6, 0.42],
-    [-0.6, -4.2, 0.06],
+  // The tomato: three whole slices standing IN the gaps between the lettuce
+  // lobes, unevenly spaced. Red and green side by side along the length is the
+  // mark that says "a row of ingredients" before any of them is resolvable.
+  for (const [tx, ty] of [
+    [-7.2, -0.7],
+    [0.2, -0.9],
+    [7.4, -0.6],
   ] as const) {
     ctx.beginPath();
-    ctx.ellipse(sx, sy, 1.5, 0.85, rot, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(tx, ty, 2.1, 0, Math.PI * 2);
+    inked(ctx, p.shade, p.outline);
+  }
+
+  // ── The lid: a low arch, asymmetric at the two ends, sitting on a straight
+  // cut. Straight underneath is what makes it a HALF of a roll rather than a
+  // whole one — the split is the mark that names this item.
+  const lid = (): void => {
+    ctx.beginPath();
+    ctx.moveTo(-12.4, -2.4);
+    ctx.bezierCurveTo(-13.1, -5.6, -8.4, -6.8, 0, -6.6);
+    ctx.bezierCurveTo(8.0, -6.4, 13.1, -5.4, 12.4, -2.4);
+    ctx.closePath();
+  };
+  lid();
+  inked(ctx, p.body, p.outline);
+  ctx.save();
+  lid();
+  ctx.clip();
+  ctx.fillStyle = toast;
+  ctx.fillRect(-13, -7.2, 26, 3.4);
+  ctx.restore();
+
+  // Three bakery slashes across the lid, at a slant and unevenly spaced. This
+  // is the detail that says "roll" rather than "plank" at speed.
+  ctx.strokeStyle = withAlpha(p.outline, 0.32);
+  ctx.lineWidth = 0.8;
+  for (const sx of [-7.2, -0.6, 6.4]) {
+    ctx.beginPath();
+    ctx.moveTo(sx - 1.1, -3.4);
+    ctx.lineTo(sx + 1.3, -5.7);
     ctx.stroke();
   }
+}
+
+/**
+ * SANDWICH — two triangular halves standing side by side, pale, with the
+ * diagonal cut on show.
+ *
+ * PALE BEFORE IT IS ANYTHING ELSE. This is the only bread in the set drawn with
+ * NO CRUST COLOUR: white sliced bread, barely tinted, against three warm tans
+ * and an orange girder. At the size this is actually seen, that value gap does
+ * more than the outline does — you can blur this to a smudge and it is still
+ * the light smudge.
+ *
+ * TWO, WHERE THE PIZZA IS ONE. Both items are triangular and that is a real
+ * collision, so it is settled by COUNT before either outline resolves: one big
+ * wedge with a fat curved end, or two small peaks with a valley between them.
+ * The two halves are deliberately UNEQUAL — different heights, different
+ * widths, apexes off their own base centres — because two matched triangles
+ * side by side is a chevron, and matched anything is a symbol rather than a
+ * lunch.
+ *
+ * FOUR TOKENS, FOUR PARTS, and one of them is doing something unusual. `body`
+ * is the bread of the FRONT half. `shade` is a COOL grey-blue: it tints the
+ * BACK half so the two separate without an outline between them having to do
+ * all the work, and being cold is the point — a warm shadow would put the tan
+ * straight back into an item whose whole argument is that it has none. `accent`
+ * is the filling, and it is a SINGLE green where the sub's filling is three
+ * colours, so the two cut-open items do not rhyme even in their insides.
+ */
+function sandwich(ctx: CanvasRenderingContext2D, p: Palette): void {
+  /** The back half, cooled a little so the pair separates at any size. */
+  const backBread = mix(p.body, p.shade, 0.34);
+
+  /**
+   * One half: a squat triangle with a THICK RAGGED FILLING BAND that runs right
+   * THROUGH its cut edges and out the other side.
+   *
+   * THE BAND CROSSING THE SILHOUETTE IS THE CORRECTION THIS DISH NEEDED, and it
+   * took four looks to find it. Upright, blunted, tilted, squat — through all of
+   * those the pair still read as HILLS, because a pale peak with a green line
+   * across it is a horizon, and a horizon is the first thing the eye reaches for
+   * when the shape is eight pixels wide. Clipping the filling INSIDE the bread
+   * was the mistake: a stripe that stops at the outline is a stripe painted on a
+   * shape, and a landscape is exactly that. Letting the lettuce break out
+   * through both cut edges interrupts the OUTLINE at the filling, which no hill
+   * has and every sandwich does. It is the same move the burger's frill makes.
+   *
+   * The edges are also gently CONVEX and the apex is blunt — bread is soft, and
+   * a perfectly straight edge with a sharp point is geology.
+   */
+  const half = (
+    ax: number,
+    ay: number,
+    lx: number,
+    rx: number,
+    by: number,
+    tilt: number,
+    fill: string,
+    fy: number,
+  ): void => {
+    ctx.save();
+    ctx.translate((lx + rx) / 2, by);
+    ctx.rotate(tilt);
+    ctx.translate(-(lx + rx) / 2, -by);
+
+    /** A point `t` of the way from the apex down one of the cut edges. */
+    const edge = (ex: number, t: number): [number, number] => [
+      ax + (ex - ax) * t,
+      ay + (by - ay) * t,
+    ];
+    const [blx, bly] = edge(lx, 0.24);
+    const [brx, bry] = edge(rx, 0.24);
+    const tri = (): void => {
+      ctx.beginPath();
+      ctx.moveTo(lx, by);
+      ctx.quadraticCurveTo((lx + blx) / 2 - 0.7, (by + bly) / 2, blx, bly);
+      ctx.quadraticCurveTo(ax, ay, brx, bry);
+      ctx.quadraticCurveTo((rx + brx) / 2 + 0.7, (by + bry) / 2, rx, by);
+      ctx.closePath();
+    };
+    tri();
+    inked(ctx, fill, p.outline);
+
+    // THE FILLING. Its ends are found ON the cut edges and then pushed nearly
+    // two units PAST them, so the green leaves the bread rather than stopping at
+    // it. Top edge straight — that is the underside of the top slice, and it
+    // has to look cut; bottom edge ragged, because a leaf does not.
+    const t = (fy + 1.4 - ay) / (by - ay);
+    const l = edge(lx, t)[0] - 1.9;
+    const r = edge(rx, t)[0] + 1.9;
+    const w = r - l;
+    const at = (f: number, dy: number): [number, number] => [l + w * f, fy + dy];
+    ctx.beginPath();
+    ctx.moveTo(l, fy + 1.2);
+    ctx.quadraticCurveTo(...at(0.12, -0.9), ...at(0.32, -0.3));
+    ctx.quadraticCurveTo(...at(0.5, 0.2), ...at(0.7, -0.4));
+    ctx.quadraticCurveTo(...at(0.88, -0.9), r, fy + 1.2);
+    ctx.quadraticCurveTo(...at(0.82, 3.6), ...at(0.62, 2.8));
+    ctx.quadraticCurveTo(...at(0.45, 3.9), ...at(0.3, 2.8));
+    ctx.quadraticCurveTo(...at(0.14, 3.7), l, fy + 1.2);
+    ctx.closePath();
+    // A LIGHTER edge than the bread's, deliberately. At full keyline weight a
+    // two-unit band is mostly its own outline — the green disappears inside the
+    // ink and the half reads as a striped pyramid. Internal marks in this file
+    // are hairlines for exactly this reason; only the silhouette gets the
+    // full-weight keyline, because only the silhouette is fighting the girder.
+    ctx.fillStyle = p.accent;
+    ctx.fill();
+    ctx.strokeStyle = withAlpha(p.outline, 0.55);
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+
+    // The bread's keyline last, so the two slices still have an edge where the
+    // filling has not taken it — and so the band reads as sitting BETWEEN them.
+    tri();
+    ctx.strokeStyle = p.outline;
+    ctx.lineWidth = LINE;
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  // THE TWO HALVES ARE UNEQUAL, TIPPED SLIGHTLY THE OPPOSITE WAY FROM EACH
+  // OTHER, AND THEY OVERLAP. Two matched triangles side by side is a chevron,
+  // and matched anything is a symbol rather than a lunch; the overlap is what
+  // gives the pair depth from nothing but draw order, as the burger's stack
+  // does. Both are WIDER THAN THEY ARE TALL, which a mountain is not.
+  half(-7.8, -3.4, -12.6, -1.8, 6.6, 0.12, backBread, 0.7);
+  half(5.4, -5.8, -1.6, 12.2, 7.8, -0.16, p.body, 1.4);
 }
 
 /**

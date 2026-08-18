@@ -343,7 +343,7 @@ const LEVEL_1: StageDef = (() => {
     ],
     foods: [
       { x: 232, y: 507 - ON_LINE, kind: 0 }, // F2, on the walk from ladder 1 to ladder 2
-      { x: 280, y: 299 - ON_LINE, kind: 1 }, // F4, on the walk from ladder 3 to ladder 4
+      { x: 280, y: 299 - ON_LINE, kind: 3 }, // F4, on the walk from ladder 3 to ladder 4
     ],
 
     agentStart: { x: 80, y: 706.3333333333334 },
@@ -388,7 +388,7 @@ const LEVEL_2: StageDef = (() => {
     // second thing to learn. See the header on why both levels share one tower.
     rakhis: [{ x: 280, y: 617 - ON_LINE }],
     foods: [
-      { x: 232, y: 507 - ON_LINE, kind: 2 },
+      { x: 232, y: 507 - ON_LINE, kind: 0 },
       { x: 280, y: 299 - ON_LINE, kind: 3 },
     ],
     agentStart: { x: 80, y: 706.3333333333334 },
@@ -685,9 +685,9 @@ const LEVEL_3: StageDef = (() => {
     // level's new mechanic is the thing that hands it over.
     rakhis: [onLine(1, 300)],
     foods: [
-      { ...onLine(2, 250), kind: 4 },
-      { ...onLine(3, 280), kind: 5 },
-      { ...onLine(4, 300), kind: 6 },
+      { ...onLine(2, 250), kind: 0 },
+      { ...onLine(3, 280), kind: 3 },
+      { ...onLine(4, 300), kind: 2 },
     ],
 
     agentStart: onFloor(0, 80),
@@ -731,8 +731,8 @@ const LEVEL_4: StageDef = (() => {
     rakhis: [onLine(1, 260)],
     foods: [
       { ...onLine(2, 270), kind: 0 },
-      { ...onLine(3, 240), kind: 1 },
-      { ...onLine(4, 280), kind: 2 },
+      { ...onLine(3, 240), kind: 5 },
+      { ...onLine(4, 280), kind: 1 },
     ],
 
     // Two flames and the answer to them, on the same level and in that order:
@@ -790,10 +790,10 @@ const LEVEL_5: StageDef = (() => {
     // of the rakhi, which is the sort of thing a two-unit nudge does silently.
     rakhis: [onLine(1, 280)],
     foods: [
-      { ...onLine(2, 290), kind: 3 },
-      { ...onLine(3, 300), kind: 4 },
-      { ...onLine(4, 436), kind: 5 },
-      { ...onLine(5, 250), kind: 6 },
+      { ...onLine(2, 290), kind: 0 },
+      { ...onLine(3, 300), kind: 3 },
+      { ...onLine(4, 436), kind: 4 },
+      { ...onLine(5, 250), kind: 2 },
     ],
 
     // THE FIRST HELMET IN THE GAME, on F2, one floor BELOW the F3 traverse that
@@ -865,9 +865,9 @@ const LEVEL_6: StageDef = (() => {
     rakhis: [onLine(1, 300)],
     foods: [
       { ...onLine(2, 330), kind: 0 },
-      { ...onLine(3, 280), kind: 1 },
-      { ...onLine(4, 300), kind: 2 },
-      { ...onLine(5, 210), kind: 3 },
+      { ...onLine(3, 280), kind: 5 },
+      { ...onLine(4, 300), kind: 4 },
+      { ...onLine(5, 210), kind: 1 },
     ],
     shakers: [onLine(3, 330)],
 
@@ -915,11 +915,11 @@ const LEVEL_7: StageDef = (() => {
     rakhis: [onLine(0, 220)],
     // FIVE DISHES, the biggest order so far, one per floor from F1 up.
     foods: [
-      { ...onLine(1, 260), kind: 4 },
-      { ...onLine(2, 270), kind: 5 },
-      { ...onLine(3, 240), kind: 6 },
-      { ...onLine(4, 280), kind: 0 },
-      { ...onLine(5, 360), kind: 1 },
+      { ...onLine(1, 260), kind: 0 },
+      { ...onLine(2, 270), kind: 3 },
+      { ...onLine(3, 240), kind: 4 },
+      { ...onLine(4, 280), kind: 5 },
+      { ...onLine(5, 360), kind: 2 },
     ],
 
     // Fixed cadence, no jitter. See ScooterDef.
@@ -978,11 +978,11 @@ const LEVEL_8: StageDef = (() => {
     // a dish. The F4 dish in car A's column is still the free one (see R9).
     rakhis: [onLine(1, 280)],
     foods: [
-      { ...onLine(2, 200), kind: 2 },
+      { ...onLine(2, 200), kind: 0 },
       { ...onLine(2, 290), kind: 3 },
       { ...onLine(4, 270), kind: 4 },
       { ...onLine(4, 436), kind: 5 },
-      { ...onLine(5, 250), kind: 6 },
+      { ...onLine(5, 250), kind: 1 },
     ],
     // NO SHAKER. Layout D's second visit is the level where the player is
     // expected to own the tower: they have already cleared it once, the route is
@@ -1053,9 +1053,9 @@ const LEVEL_9: StageDef = (() => {
     // player must land twice: once to progress, once to not lose the item.
     foods: [
       { ...onLine(2, 300), kind: 0 },
-      { ...onLine(3, 280), kind: 1 },
-      { ...onLine(4, 340), kind: 2 },
-      { ...onLine(5, 340), kind: 3 },
+      { ...onLine(3, 280), kind: 3 },
+      { ...onLine(4, 340), kind: 5 },
+      { ...onLine(5, 340), kind: 2 },
     ],
 
     // ON THE CUT FLOORS, both of them, and NOWHERE ELSE. A flame on a split
@@ -1135,12 +1135,12 @@ const LEVEL_10: StageDef = (() => {
     // level's headline objective is in hand before anything is chasing you.
     rakhis: [onLine(0, 320)],
     foods: [
-      { ...onLine(1, 280), kind: 4 },
-      { ...onLine(2, 200), kind: 5 },
-      { ...onLine(2, 270), kind: 6 },
-      { ...onLine(3, 280), kind: 0 },
+      { ...onLine(1, 280), kind: 0 },
+      { ...onLine(2, 200), kind: 3 },
+      { ...onLine(2, 270), kind: 4 },
+      { ...onLine(3, 280), kind: 5 },
       { ...onLine(4, 280), kind: 1 },
-      { ...onLine(5, 340), kind: 2 },
+      { ...onLine(5, 340), kind: 0 },
     ],
 
     // THE ORDER PINS. Four, all on floors the route already crosses, and the
