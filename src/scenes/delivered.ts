@@ -303,7 +303,17 @@ export class DeliveredScene implements GameScene {
       rows.push([COPY.receiptSweep, '', true]);
     }
 
-    const headH = 108;
+    // THE MASTHEAD'S HEIGHT, DERIVED rather than written down.
+    //
+    // This was `108` — a number that happened to equal the mark plus its gaps
+    // on the day it was written. The artwork then grew (it carries the brand's
+    // strapline now) and 108 became a promise the header could not keep: the
+    // first row printed straight through the strapline. Deriving it means the
+    // next change to the artwork cannot silently take the rows with it.
+    const innerW = col.w - SPACE.xl * 2;
+    const markW = Math.min(200, innerW * 0.58);
+    const markH = markHeight(markW, 'mark');
+    const headH = SPACE.xl + markH + SPACE.md + SPACE.md;
     const totalH = SPACE.lg * 2 + TEXT.head;
     const top = content.y + SPACE.xxl + SPACE.md;
     const bottom = this.regions[R_NEXT]!.y - SPACE.lg;
@@ -325,13 +335,10 @@ export class DeliveredScene implements GameScene {
     drawReceiptPaper(ctx, paper);
 
     const innerX = paper.x + SPACE.xl;
-    const innerW = paper.w - SPACE.xl * 2;
 
     // The mark heads the receipt, exactly as it heads a real one. Used as
     // supplied — the plated cuts carry their own opaque plate, so a knockout
     // here would paint a white squircle where the emblem is.
-    const markW = Math.min(148, innerW * 0.42);
-    const markH = markHeight(markW, 'mark');
     drawMarkCentered(ctx, paper.x + paper.w / 2, paper.y + SPACE.xl + markH / 2, markW);
     dashedDivider(
       ctx,
@@ -393,12 +400,13 @@ export class DeliveredScene implements GameScene {
     // The mark heads the completion screen too — this is the frame a player who
     // finished the whole run is most likely to keep, and it is the one screen
     // where the brand has unambiguously earned the credit.
-    const markW = Math.min(150, col.w * 0.34);
+    // Matches gameOver's header exactly — the two screens are the same shape.
+    const markW = Math.min(200, col.w * 0.45);
     const markH = markHeight(markW, 'mark');
     const markY = content.y + SPACE.sm;
     drawMarkCentered(ctx, cx, markY + markH / 2, markW);
 
-    const titleY = markY + markH + SPACE.lg;
+    const titleY = markY + markH + SPACE.xl;
     label(ctx, tUpper(COPY.completeTitle), cx, titleY, {
       size: TEXT.head,
       weight: WEIGHT.display,

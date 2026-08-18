@@ -80,6 +80,23 @@ export interface LevelSelectCallbacks {
   onBack(): void;
 }
 
+/**
+ * HEADER MARK WIDTH — one expression, and it has to stay one.
+ *
+ * This used to be `Math.min(150, col.w * 0.34)` written out twice: once in the
+ * layout helper that decides where the grid starts, once in the render that
+ * actually draws it. Two copies of a layout constant is a bug waiting for
+ * whichever pass gets edited alone — the grid would start somewhere the mark
+ * does not end, and nothing would fail except the look of it.
+ *
+ * 200 rather than 150 because the mark now carries the brand's strapline: at
+ * 150 units the strapline lands around seven device pixels tall and reads as a
+ * smudge rather than as words.
+ */
+function headerMarkW(colW: number): number {
+  return Math.min(200, colW * 0.45);
+}
+
 export class LevelSelectScene implements GameScene {
   readonly id: SceneId = 'levelSelect';
 
@@ -162,8 +179,8 @@ export class LevelSelectScene implements GameScene {
   private headerBottom(): number {
     const content = menuContentRect(this.vp);
     const col = columnRect(this.vp, content.y, content.h);
-    const markW = Math.min(150, col.w * 0.34);
-    return content.y + SPACE.md + markHeight(markW, 'mark') + SPACE.lg + SPACE.lg + SPACE.md;
+    const markW = headerMarkW(col.w);
+    return content.y + SPACE.md + markHeight(markW, 'mark') + SPACE.xl + SPACE.lg + SPACE.md;
   }
 
   render(ctx: CanvasRenderingContext2D, _alpha: number, _simTime: number): void {
@@ -178,11 +195,11 @@ export class LevelSelectScene implements GameScene {
     // The mark, as supplied, on the paper ground. Never a knockout — the plated
     // cuts carry their own opaque plate and knocking one out paints a white
     // squircle where the emblem should be.
-    const markW = Math.min(150, col.w * 0.34);
+    const markW = headerMarkW(col.w);
     const markH = markHeight(markW, 'mark');
     drawMarkCentered(ctx, cx, content.y + SPACE.md + markH / 2, markW);
 
-    label(ctx, COPY.levelSelectTitle, cx, content.y + SPACE.md + markH + SPACE.lg, {
+    label(ctx, COPY.levelSelectTitle, cx, content.y + SPACE.md + markH + SPACE.xl, {
       size: TEXT.head,
       weight: WEIGHT.display,
       align: 'center',

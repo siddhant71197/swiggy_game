@@ -169,30 +169,38 @@ function buildHouseCreative(): HTMLElement {
   const text = document.createElement('div');
   text.style.cssText = 'flex:1 1 auto;min-width:0;line-height:1.15';
 
+  // With no subline the headline owns the whole column, so it is set larger and
+  // allowed to wrap to two lines instead of being clipped to one.
+  const solo = !c.subline;
+
   const headline = document.createElement('div');
   headline.textContent = c.headline;
   headline.style.cssText = [
     `color:${c.headlineColor}`,
-    'font-size:13px',
+    solo ? 'font-size:15px' : 'font-size:13px',
     // Only the three weights the brand actually ships are ever named; asking for
     // a fourth makes the browser synthesise a smeared faux-bold.
     `font-weight:${WEIGHT.display}`,
     'letter-spacing:0.01em',
-    'white-space:nowrap',
+    solo ? 'white-space:normal' : 'white-space:nowrap',
     'overflow:hidden',
-    'text-overflow:ellipsis',
+    solo ? '' : 'text-overflow:ellipsis',
   ].join(';');
 
-  const subline = document.createElement('div');
-  subline.textContent = c.subline;
-  subline.style.cssText = [
-    `color:${c.sublineColor}`,
-    'font-size:10px',
-    `font-weight:${WEIGHT.body}`,
-    'white-space:nowrap',
-    'overflow:hidden',
-    'text-overflow:ellipsis',
-  ].join(';');
+  // Built only when there is one. An empty <div> still reserves a line box, so a
+  // banner "without" a subline would keep a hole where one used to be.
+  const subline = c.subline ? document.createElement('div') : null;
+  if (subline) {
+    subline.textContent = c.subline!;
+    subline.style.cssText = [
+      `color:${c.sublineColor}`,
+      'font-size:10px',
+      `font-weight:${WEIGHT.body}`,
+      'white-space:nowrap',
+      'overflow:hidden',
+      'text-overflow:ellipsis',
+    ].join(';');
+  }
 
   const cta = document.createElement('span');
   cta.textContent = c.cta;
@@ -208,7 +216,7 @@ function buildHouseCreative(): HTMLElement {
   ].join(';');
 
   text.appendChild(headline);
-  text.appendChild(subline);
+  if (subline) text.appendChild(subline);
   a.appendChild(logo);
   a.appendChild(text);
   a.appendChild(cta);

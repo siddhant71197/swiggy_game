@@ -66,6 +66,7 @@ import { clamp } from '../core/math';
 import { drawAgentArt } from '../render/art/agent';
 import { drawBarrelArt } from '../render/art/barrel';
 import { drawMonkeyArt } from '../render/art/monkey';
+import { drawFoodArt } from '../render/art/food';
 import { drawRakhiArt } from '../render/art/rakhi';
 import { drawLadderArt, drawShutterArt } from '../render/art/props';
 import type { Viewport } from '../render/canvas';
@@ -162,12 +163,13 @@ export class RulesScene implements GameScene {
     // not the brand-orange ground the splash sits on, so it needs no plate; and
     // it is emphatically not a knockout, which would re-cut plated artwork by
     // its alpha and paint a white squircle where the emblem is.
-    const markW = Math.min(176, col.w * 0.4);
+    // 200, not 176: the mark carries the strapline now and needs the room.
+    const markW = Math.min(200, col.w * 0.48);
     const markH = markHeight(markW, 'mark');
     const markY = content.y + SPACE.md;
     drawMarkCentered(ctx, cx, markY + markH / 2, markW);
 
-    const titleY = markY + markH + SPACE.lg;
+    const titleY = markY + markH + SPACE.xl;
     label(ctx, COPY.rulesTitle, cx, titleY, {
       size: TEXT.head,
       weight: WEIGHT.display,
@@ -341,10 +343,18 @@ export class RulesScene implements GameScene {
         drawShutterArt(ctx, cx - shutW / 2, shutTop, shutW, shutH);
         iconLock(ctx, cx, shutTop + shutH / 2, 22, COLORS.shutterLockIcon);
 
-        const rakhiY = tile.y + tile.h - 34;
-        for (let k = 0; k < 3; k++) {
-          drawRakhiArt(ctx, cx + (k - 1) * 32, rakhiY, px, k * 2);
-        }
+        // ONE RAKHI AND TWO FOOD ITEMS, matching what the panel now SAYS.
+        //
+        // This drew three rakhis while the copy said "collect every rakhi", and
+        // both were true at the time. Food then became a second required
+        // objective and the copy was fixed — leaving the picture teaching the
+        // old rule, which is worse than saying nothing, because a pictogram is
+        // what a player actually looks at. The level layout is one rakhi plus
+        // the order, and this is now that.
+        const rowY = tile.y + tile.h - 34;
+        drawRakhiArt(ctx, cx - 32, rowY, px, 0);
+        drawFoodArt(ctx, cx, rowY, px, 0);
+        drawFoodArt(ctx, cx + 32, rowY, px, 3);
         break;
       }
 

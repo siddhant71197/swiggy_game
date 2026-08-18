@@ -342,7 +342,14 @@ export interface BrandShape {
 /** The house creative shown until a live ad tag is wired in. */
 export interface BrandAd {
   readonly headline: string;
-  readonly subline: string;
+  /**
+   * OPTIONAL, and omitted rather than emptied when there is none.
+   *
+   * An empty string is still a line box with a colour and a gap reserved for it,
+   * so a banner "without" a subline would keep a hole where one used to be.
+   * Absent means the headline gets the height.
+   */
+  readonly subline?: string;
   readonly cta: string;
 }
 
@@ -426,7 +433,15 @@ export type ThemeToken = string;
  * and one favicon is a complete brand.
  */
 export interface BrandLogo {
-  /** The full lockup: emblem + wordmark. The splash and the ad banner use this. */
+  /**
+   * The full lockup — emblem + wordmark, and the strapline too when the brand
+   * supplies one that way. Boot overlay, splash, and every menu header.
+   *
+   * THIS ONE MUST BE USABLE WHOLE. index.html renders it as a bare `<img>` and
+   * an HTML tag cannot express a sub-rectangle, so a `mark` that declares a
+   * `rect` will be correct on the canvas and framed by whitespace on the boot
+   * screen. Supply it cropped to its artwork.
+   */
   readonly mark: AssetRef;
   /** The wordmark alone. */
   readonly wordmark?: AssetRef;

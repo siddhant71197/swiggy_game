@@ -165,12 +165,18 @@ export class GameOverScene implements GameScene {
     // The mark, as supplied, on the paper ground. Never a knockout: the plated
     // cuts carry their own opaque plate, and re-cutting one by its alpha paints
     // a featureless white squircle where the emblem should be.
-    const markW = Math.min(150, col.w * 0.34);
+    // 200, not 150: the mark carries the brand's strapline now, and below
+    // roughly 150 units that strapline is texture rather than words.
+    const markW = Math.min(200, col.w * 0.45);
     const markH = markHeight(markW, 'mark');
     const markY = content.y + SPACE.sm;
     drawMarkCentered(ctx, cx, markY + markH / 2, markW);
 
-    const titleY = markY + markH + SPACE.lg;
+    // One step WIDER than it was. `label` centres on its y, so a 32-unit
+    // title at markH + SPACE.lg had its cap top 8 units under the artwork —
+    // survivable when the artwork ended in a wordmark, an overlap now that it
+    // ends in the strapline's descenders.
+    const titleY = markY + markH + SPACE.xl;
     label(ctx, COPY.gameOverTitle, cx, titleY, {
       size: TEXT.title,
       weight: WEIGHT.display,

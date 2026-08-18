@@ -19,7 +19,7 @@
  */
 
 import type { PointerKind } from '../core/types';
-import { BRAND_COPY, COLORS, IDENTITY } from '../brand';
+import { COLORS, IDENTITY } from '../brand';
 import { COPY } from '../config/copy';
 import { RADIUS, SPACE, TEXT, TRACK } from '../config/theme';
 import { columnRect, menuContentRect, rect, type Rect } from '../render/layout';
@@ -118,6 +118,10 @@ export class SplashScene implements GameScene {
     // squircle where the emblem should be. Knockout is for the WORDMARK cut,
     // whose artwork is letterforms on transparency. Here the artwork is used
     // exactly as supplied, which is also what the brand's guidelines ask for.
+    //
+    // "As supplied" now includes the strapline, which is part of this file
+    // rather than a separate cut assembled underneath. The game's own name goes
+    // BELOW the whole block — see the note on the title.
     const markW = Math.min(360, this.vp.fieldW - SPACE.xxl * 2);
     const markH = markHeight(markW, 'mark');
     const markY = content.y + SPACE.xxl;
@@ -134,7 +138,11 @@ export class SplashScene implements GameScene {
     // The GAME's name, not the brand's — the mark above already says who this
     // is, and setting the brand name twice in one eyeline is the most common way
     // a branded game's splash ends up looking like an error page.
-    const titleY = markY + markHeight(markW, 'mark') + SPACE.xl;
+    // SPACE.xxl, not xl: `label` centres on its y, so the title's cap top sits
+    // 16 units above this. The plate already extends SPACE.md below the
+    // artwork, and the artwork now ends in the strapline rather than in the
+    // wordmark's baseline — anything tighter and the title touches the plate.
+    const titleY = markY + markHeight(markW, 'mark') + SPACE.xxl;
     label(ctx, IDENTITY.gameTitle, cx, titleY, {
       size: TEXT.head,
       align: 'center',
@@ -142,14 +150,8 @@ export class SplashScene implements GameScene {
       track: TRACK.label,
     });
 
-    label(ctx, BRAND_COPY.splashKicker, cx, titleY + SPACE.xl, {
-      size: TEXT.body,
-      align: 'center',
-      color: COLORS.mastheadText,
-    });
-
     if (this.best > 0) {
-      label(ctx, `${COPY.highScore}  ${this.best}`, cx, titleY + SPACE.xl + SPACE.xl, {
+      label(ctx, `${COPY.highScore}  ${this.best}`, cx, titleY + SPACE.xl, {
         size: TEXT.label,
         align: 'center',
         color: COLORS.mastheadText,

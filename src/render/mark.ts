@@ -81,6 +81,15 @@ export interface MarkOptions {
  *
  * The emblem alone has NO minimum — that is what makes it the emblem, and why
  * `drawEmblem()` exists as a separate entry point rather than as a flag.
+ *
+ * ─── THIS IS A FLOOR, NOT THE RIGHT SIZE ───────────────────────────────────
+ *
+ * A `mark` that carries a strapline — Swiggy's does — needs roughly 150 units
+ * before the strapline is words rather than texture. That is NOT enforced here
+ * and must not be: the gameplay masthead derives its wordmark width FROM this
+ * constant, so raising it would push the wordmark out of the ~18 units of band
+ * it has and break the most constrained layout in the game. The menu screens
+ * size their own mark well above it; this number only stops the absurd case.
  */
 export const MARK_MIN_W = 56;
 
@@ -104,9 +113,22 @@ let inlineRef: AssetRef | null = null;
  * So this resolves, always, and `markTier()` tells you what you got.
  */
 export function loadBrandAssets(): Promise<void> {
+  // EVERY blittable cut, discovered rather than listed.
+  //
+  // This was a hand-written array of four cuts, and it was a trap the moment a
+  // cut pointed somewhere new: Swiggy's cuts now come from TWO files — the
+  // gameplay masthead reads the plain lockup, the menus read the one carrying
+  // the strapline — and a cut whose file never preloads does not error. It
+  // falls through to the vector tier and stays there, which reads as a
+  // rendering bug and is a config one. Walking the object cannot fall behind it.
+  //
+  // `favicon` is excluded deliberately: it is the <link rel=icon> asset, the
+  // browser fetches it, and nothing in this file ever blits it.
   const srcs = new Set<string>();
-  for (const ref of [LOGO.mark, LOGO.wordmark, LOGO.square, LOGO.emblem]) {
-    if (ref) srcs.add(ref.src);
+  for (const [key, ref] of Object.entries(LOGO)) {
+    if (key === 'favicon') continue;
+    const asset = ref as Partial<AssetRef> | undefined;
+    if (asset && typeof asset.src === 'string') srcs.add(asset.src);
   }
 
   const jobs: Promise<void>[] = [];

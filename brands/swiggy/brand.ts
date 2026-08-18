@@ -268,8 +268,10 @@ export const shape = {
 } satisfies BrandShape;
 
 export const ad = {
-  headline: 'Rakhi delivered in 10 minutes',
-  subline: 'Instamart has 100+ rakhis. Your cousin is waiting.',
+  headline: 'Big Deal. Bigger Cravings',
+  // No subline: the headline and the bubble carry it. Note this also retires the
+  // last "10 minutes" promise in the build — a claim quick-commerce firms in
+  // India were pressed to drop, so its absence is worth keeping.
   cta: 'Order now',
 } satisfies BrandAd;
 
@@ -315,39 +317,74 @@ export const copy = {
   shareText: 'I delivered every rakhi in Swiggy Delivery Climb. Beat my score:',
 } satisfies BrandCopy;
 
-/**
- * ─── ONE FILE, SEVERAL CUTS ────────────────────────────────────────────────
- *
- * The brand supplied a single horizontal lockup. Rather than re-encoding crops
- * of it (lossy, and the crop numbers end up as magic constants in a shell
- * command nobody keeps) or hand-drawing the emblem (which is how a subtly wrong
- * trademark gets shipped), every cut below is a declared sub-rectangle of that
- * authentic file.
- *
- * The fractions were MEASURED off the artwork's alpha channel, not eyeballed:
- *   plate    x  80…377  y  17…311   →  298 × 295 px, aspect 1.0102
- *   wordmark x 452…1062 y  93…269   →  611 × 177 px, aspect 3.4520
- * against a 1143 × 333 source. The plate is 1% off square, which is real and
- * is why `aspect` says 1.0102 rather than 1 — declaring it square would blit it
- * 1% wide forever.
- */
 export const logo = {
-  /** The full lockup. Splash hero, ad banner, masthead. */
+  /**
+   * ─── TWO SUPPLIED LOCKUPS, AND WHICH SCREENS READ WHICH ────────────────────
+   *
+   * The brand supplied two pieces of artwork, and they are not interchangeable:
+   *
+   *   logo-lockup.png          1143 x 333   emblem + wordmark, on transparency
+   *   logo-lockup-tagline.png   730 x 347   emblem + wordmark + the strapline
+   *
+   * `mark` is the tagline lockup and everything else is cut from the plain one.
+   * That split is not tidiness — it is forced, twice over:
+   *
+   *   1. THE GAMEPLAY MASTHEAD HAS NO ROOM FOR A STRAPLINE. The band is 96
+   *      units, of which the emblem takes 56 and the wordmark gets the ~18 that
+   *      are left. A third line of type does not fit, and shrinking the other
+   *      two to make it fit puts the wordmark under its own minimum clear size.
+   *   2. index.html CANNOT ADDRESS A SUB-RECTANGLE. The boot overlay is a plain
+   *      `<img src="%brand:logo.mark.src%">`, so whatever `mark` names has to be
+   *      usable WHOLE. That is why the tagline file is cropped to its ink and
+   *      declares no `rect` — the file IS the cut. Pointing `mark` at a padded
+   *      master and relying on a rect would leave the boot plate framing an
+   *      expanse of whitespace with a small logo adrift in it.
+   *
+   * Fractions MEASURED off each file's alpha, not eyeballed.
+   *
+   * Against 1143 x 333:
+   *   plate    x  80..377  y  17..311   ->  298 x 295, aspect 1.0102
+   *   wordmark x 452..1062 y  93..269   ->  611 x 177, aspect 3.4520
+   * The plate is 1% off square, which is real; declaring it 1 would blit it 1%
+   * wide forever.
+   *
+   * The tagline file arrived as opaque RGB on white. The white was stripped by a
+   * flood fill seeded FROM THE BORDER, never globally: the emblem is an orange
+   * squircle with the S-Pin knocked out of its middle in white, and a global
+   * white-to-alpha pass would punch a hole straight through the pin — a failure
+   * that looks fine in a thumbnail and is obvious everywhere the mark is large.
+   * Edge alpha comes from coverage (the darkest channel), not a luminance
+   * threshold; thresholding left the antialiased ramp opaque and pale, which
+   * reads as a white halo on orange and is invisible on white.
+   */
+
+  /**
+   * THE FULL LOCKUP WITH THE STRAPLINE. Boot overlay, splash, and every menu
+   * header — drawn whole, exactly as supplied, with the game's name below it.
+   *
+   * PRACTICAL MINIMUM ~150 UNITS, which is larger than MARK_MIN_W and is not
+   * enforced there on purpose: the masthead sets its wordmark width FROM
+   * MARK_MIN_W, so raising that constant to protect this cut would break the
+   * most constrained layout in the game. Below ~150 the strapline stops being
+   * words and becomes a texture.
+   */
   mark: {
-    src: './brand/logo-lockup.png',
-    aspect: 1143 / 333,
-    // The lockup contains the filled plate, so it is opaque too: only the
-    // wordmark cut is line art and therefore the only cut a knockout suits.
+    src: './brand/logo-lockup-tagline.png',
+    // No rect: the file is cropped to the artwork, so this is the file's own
+    // ratio and R15 validates it by construction rather than by arithmetic.
+    aspect: 730 / 347,
+    // Contains the filled squircle, so a knockout of it is a silhouette.
     opaque: true,
   },
 
+  /** Letterforms on transparency — the ONE cut a knockout suits. */
   wordmark: {
     src: './brand/logo-lockup.png',
     aspect: 611 / 177,
     rect: { sx: 452 / 1143, sy: 93 / 333, sw: 611 / 1143, sh: 177 / 333 },
   },
 
-  /** The emblem on its plate — the app-icon cut. */
+  /** The emblem on its plate — the app-icon cut, and the sticky banner's. */
   square: {
     src: './brand/logo-lockup.png',
     aspect: 298 / 295,
@@ -358,13 +395,9 @@ export const logo = {
 
   /**
    * The backpack emblem — the same cut as `square`, and that is correct rather
-   * than lazy.
-   *
-   * The supplied artwork has the pin knocked out of the plate in white, so the
-   * pin does not exist as separable transparent art and could only be obtained
-   * by redrawing it. It also does not need to be: a real Swiggy delivery bag
-   * carries the plated emblem, so an orange square with a white pin on the
-   * backpack is what the thing actually looks like.
+   * than lazy: the pin is knocked out of the plate in the supplied artwork, so
+   * it does not exist as separable transparent art, and a real delivery bag
+   * carries the plated emblem anyway.
    */
   emblem: {
     src: './brand/logo-lockup.png',
@@ -379,22 +412,12 @@ export const logo = {
    * The location-pin silhouette, generalised. Drawn only before the artwork has
    * decoded, and at sizes where no raster resolves.
    *
-   * SOLID-FILLED AND NEVER OUTLINED — that is a published guideline, not a
-   * preference, which is why the shape vocabulary has no stroked variant to
-   * pick by accident.
-   */
-  /**
-   * Insets measured against the real artwork rather than guessed: in the
-   * supplied plate the pin occupies roughly 46% of the plate's width and 66% of
-   * its height, which is what makes it read as a location pin rather than as a
-   * balloon.
-   *
-   * The two numbers are far apart on purpose, and the gap is the whole point of
-   * `insetX`/`insetY` being separate. An earlier pass used 0.18/0.14 — nearly
-   * square — and the resulting head was so large relative to its tail that the
-   * tangent solve produced a 37° taper and the mark came out bulbous. At 0.27 /
-   * 0.17 the taper is 58° and the silhouette matches the artwork it stands in
-   * for.
+   * Insets measured against the real artwork rather than guessed: the pin
+   * occupies roughly 46% of the plate's width and 66% of its height. The two
+   * numbers are far apart on purpose — an earlier pass used a near-square
+   * 0.18/0.14 and the resulting head was so large relative to its tail that the
+   * tangent solve produced a 37 degree taper and the mark came out bulbous. At
+   * 0.27/0.17 the taper is 58 degrees and matches the artwork it stands in for.
    */
   fallback: { shape: 'pin-squircle', insetX: 0.27, insetY: 0.17 },
 
@@ -408,19 +431,6 @@ export const logo = {
    */
   knockout: true,
 } satisfies BrandLogo;
-
-/**
- * ══════════════════════════════════════════════════════════════════════════
- *  ANALYTICS — this brand's own GA4 property.
- * ══════════════════════════════════════════════════════════════════════════
- *
- * Here rather than in index.html so a second brand gets its own property by
- * copying a directory, and so a brand with no property simply omits this key
- * and loads no third-party script at all. src/ui/analytics.ts reads it.
- */
-export const analytics = {
-  measurementId: 'G-XJLK9LRW86',
-} satisfies BrandAnalytics;
 
 /**
  * NO OVERRIDES, which is the outcome to aim for.

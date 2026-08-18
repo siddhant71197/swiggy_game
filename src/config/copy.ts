@@ -158,8 +158,14 @@ export const COPY = {
       body: 'Your order is waiting at the top. Ladders are the only way up — you cannot jump between floors.',
     },
     {
-      title: 'Collect every {collectible}',
-      body: 'The top floor stays shut until you have all of them. Plan your route: sweep the floor you are already crossing.',
+      // NAMES BOTH COLLECTIBLES, and it has to.
+      //
+      // This panel used to say only "Collect every rakhi", which predated food
+      // becoming a second REQUIRED objective. A player read it, collected the
+      // rakhi, found the door still shut, and had been misled by the tutorial
+      // itself — the worst place in a game to be wrong.
+      title: 'Collect the {collectible} and the food',
+      body: 'The top floor stays shut until you have every one of them — the {collectible} AND the whole order. Plan your route: sweep the floor you are already crossing.',
     },
     {
       title: 'Dodge the {hazardPl}',
